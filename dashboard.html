@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — TamGam</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display@0;1&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js" defer></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script src="/shared/api.js"></script>
+  <script src="/shared/auth.js"></script>
+  <style>
+    :root {
+      --saffron:#E8640C; --saffron-lt:#F5914A; --saffron-dk:#C04F06;
+      --teal:#0D5C63; --teal-lt:#1A8A94;
+      --ivory:#FDF6EC; --ivory-dk:#F0E4CC;
+      --ink:#1A1A2E; --ink-lt:#3D3D5C;
+      --gold:#D4A017; --cream:#FEFBF4;
+      --sidebar-w: 240px;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'DM Sans',sans-serif; background:var(--cream); color:var(--ink); display:flex; min-height:100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w); flex-shrink: 0;
+      background: var(--ink); min-height: 100vh;
+      padding: 28px 0; display: flex; flex-direction: column;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    .sidebar-logo {
+      padding: 0 24px 28px;
+      display: flex; align-items: center; gap: 8px;
+      text-decoration: none; border-bottom: 1px solid rgba(255,255,255,.08);
+      margin-bottom: 20px;
+    }
+    .flame { font-size: 22px; animation: flicker 3s ease-in-out infinite; }
+    @keyframes flicker {
+      0%,100%{ filter:drop-shadow(0 0 8px rgba(232,100,12,.5)); }
+      50%    { filter:drop-shadow(0 0 14px rgba(232,100,12,.9)); }
+    }
+    .sidebar-brand { font-family:'DM Serif Display',serif; font-size:1.3rem; color:white; }
+    .sidebar-brand em { color:var(--saffron); font-style:normal; }
+
+    .nav-section { padding: 0 16px; margin-bottom: 4px; }
+    .nav-label {
+      font-size: 0.7rem; font-weight: 600; letter-spacing: .1em;
+      text-transform: uppercase; color: rgba(255,255,255,.3);
+      padding: 8px 8px 6px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 10px;
+      color: rgba(255,255,255,.65); font-size: 0.9rem; font-weight: 500;
+      cursor: pointer; transition: all .2s; text-decoration: none;
+      margin-bottom: 2px;
+    }
+    .nav-item:hover  { background: rgba(255,255,255,.08); color: white; }
+    .nav-item.active { background: var(--saffron); color: white; }
+    .nav-icon { font-size: 1.05rem; width: 20px; text-align: center; }
+
+    .sidebar-footer {
+      margin-top: auto; padding: 16px;
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+    .user-chip {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 10px;
+      background: rgba(255,255,255,.07);
+    }
+    .user-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--saffron);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem; color: white; flex-shrink: 0;
+    }
+    .user-info { overflow: hidden; }
+    .user-name  { font-size: 0.85rem; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-role  { font-size: 0.75rem; color: rgba(255,255,255,.5); }
+    .logout-btn {
+      background: none; border: none; cursor: pointer;
+      color: rgba(255,255,255,.4); font-size: 1.1rem;
+      padding: 4px; margin-left: auto;
+      transition: color .2s;
+    }
+    .logout-btn:hover { color: var(--saffron); }
+
+    /* ── Main content ── */
+    .main { flex: 1; padding: 36px 40px; overflow-y: auto; }
+
+    .page-header { margin-bottom: 32px; }
+    .page-header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem; color: var(--ink); margin-bottom: 4px;
+    }
+    .page-header p { font-size: 0.95rem; color: var(--ink-lt); }
+
+    /* ── Subscription gate banner ── */
+    .sub-banner {
+      background: linear-gradient(135deg, var(--saffron) 0%, var(--saffron-dk) 100%);
+      border-radius: 16px; padding: 20px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; margin-bottom: 28px; flex-wrap: wrap;
+    }
+    .sub-banner-text h3 { color: white; font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
+    .sub-banner-text p  { color: rgba(255,255,255,.8); font-size: 0.85rem; }
+    .btn-sub {
+      background: white; color: var(--saffron);
+      padding: 10px 20px; border-radius: 8px;
+      font-weight: 700; font-size: 0.85rem;
+      text-decoration: none; white-space: nowrap;
+      transition: transform .2s;
+    }
+    .btn-sub:hover { transform: translateY(-1px); }
+
+    /* ── Stats row ── */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .stat-card {
+      background: white; border-radius: 16px;
+      padding: 20px 20px; border: 1px solid var(--ivory-dk);
+    }
+    .stat-label { font-size: 0.78rem; font-weight: 600; color: var(--ink-lt); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .04em; }
+    .stat-value { font-family: 'Playfair Display', serif; font-size: 2rem; color: var(--ink); line-height: 1; }
+    .stat-sub   { font-size: 0.78rem; color: var(--ink-lt); margin-top: 4px; }
+    .stat-icon  { float: right; font-size: 1.6rem; opacity: .7; }
+
+    /* ── Grid layout ── */
+    .dash-grid {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 24px;
+    }
+    @media (max-width: 1100px) { .dash-grid { grid-template-columns: 1fr; } }
+
+    /* ── Card ── */
+    .card {
+      background: white; border-radius: 20px;
+      border: 1px solid var(--ivory-dk); overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .card-header {
+      padding: 20px 24px 0;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .card-title { font-size: 1rem; font-weight: 700; color: var(--ink); }
+    .card-link { font-size: 0.82rem; color: var(--saffron); text-decoration: none; font-weight: 600; }
+    .card-link:hover { text-decoration: underline; }
+    .card-body { padding: 16px 24px 20px; }
+
+    /* ── Class list ── */
+    .class-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 0; border-bottom: 1px solid var(--ivory-dk);
+    }
+    .class-item:last-child { border-bottom: none; }
+    .class-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .class-info { flex: 1; }
+    .class-name { font-size: 0.9rem; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+    .class-meta { font-size: 0.78rem; color: var(--ink-lt); }
+    .class-action a {
+      font-size: 0.8rem; font-weight: 600; color: var(--teal);
+      text-decoration: none; padding: 5px 10px;
+      border: 1px solid var(--teal); border-radius: 6px;
+      transition: all .2s;
+    }
+    .class-action a:hover { background: var(--teal); color: white; }
+    .gated-pill {
+      font-size: 0.75rem; color: var(--ink-lt);
+      background: var(--ivory-dk); padding: 4px 8px; border-radius: 5px;
+    }
+
+    /* ── Notes list ── */
+    .note-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid var(--ivory-dk);
+      text-decoration: none; color: inherit;
+      transition: background .15s;
+    }
+    .note-item:last-child { border-bottom: none; }
+    .note-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; flex-shrink: 0;
+      background: rgba(232,100,12,.08);
+    }
+    .note-name { font-size: 0.88rem; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+    .note-meta { font-size: 0.75rem; color: var(--ink-lt); }
+    .note-badge {
+      margin-left: auto; font-size: 0.7rem; font-weight: 600;
+      padding: 3px 8px; border-radius: 5px;
+    }
+    .badge-new  { background: rgba(5,150,105,.1); color: #059669; }
+    .badge-done { background: var(--ivory-dk); color: var(--ink-lt); }
+
+    /* ── Diya card ── */
+    .diya-cta {
+      background: linear-gradient(135deg, var(--teal), var(--teal-lt));
+      border-radius: 20px; padding: 24px;
+      color: white; margin-bottom: 24px;
+    }
+    .diya-cta h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+    .diya-cta p  { font-size: 0.85rem; opacity: .85; line-height: 1.6; margin-bottom: 16px; }
+    .btn-diya {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: white; color: var(--teal);
+      padding: 9px 18px; border-radius: 8px;
+      font-size: 0.85rem; font-weight: 700;
+      text-decoration: none; transition: all .2s;
+    }
+    .btn-diya:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+
+    /* ── Assessment history ── */
+    .assess-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 0; border-bottom: 1px solid var(--ivory-dk);
+    }
+    .assess-row:last-child { border-bottom: none; }
+    .score-circle {
+      width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; font-weight: 700; flex-shrink: 0;
+    }
+    .score-high { background: rgba(5,150,105,.1); color: #059669; }
+    .score-mid  { background: rgba(232,100,12,.1); color: var(--saffron); }
+    .score-low  { background: rgba(220,38,38,.1); color: #DC2626; }
+    .assess-info { flex: 1; }
+    .assess-name { font-size: 0.88rem; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+    .assess-date { font-size: 0.75rem; color: var(--ink-lt); }
+
+    /* ── Progress bar ── */
+    .progress-bar {
+      height: 6px; background: var(--ivory-dk); border-radius: 3px;
+      margin-top: 6px; overflow: hidden;
+    }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+
+    /* ── Empty state ── */
+    .empty { text-align: center; padding: 32px 24px; color: var(--ink-lt); }
+    .empty-icon { font-size: 2.5rem; margin-bottom: 8px; }
+    .empty p { font-size: 0.9rem; }
+
+    /* ── Skeleton loader ── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--ivory-dk) 25%, var(--ivory) 50%, var(--ivory-dk) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+    .skel-line { height: 14px; margin: 8px 0; }
+    .skel-short { width: 40%; }
+  </style>
+</head>
+<body x-data x-init="Guards.requireLogin()">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <a href="/" class="sidebar-logo">
+      <img src="/logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam">
+      <span class="sidebar-brand">Tam<em>Gam</em></span>
+    </a>
+
+    <div class="nav-section">
+      <div class="nav-label">Learn</div>
+      <a href="/dashboard.html" class="nav-item active">
+        <span class="nav-icon">🏠</span> Dashboard
+      </a>
+      <a href="/community.html" class="nav-item">
+        <span class="nav-icon">💬</span> Community
+      </a>
+      <a href="/diya.html" class="nav-item">
+        <span class="nav-icon"><img src="/logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></span> Ask Diya
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Account</div>
+      <a href="#" class="nav-item">
+        <span class="nav-icon">👤</span> Profile
+      </a>
+      <a href="#" class="nav-item">
+        <span class="nav-icon">⭐</span> Subscription
+      </a>
+      <a href="#" class="nav-item">
+        <span class="nav-icon">🔔</span> Notifications
+        <span x-data x-show="$store.notifs.count > 0"
+          style="margin-left:auto;background:var(--saffron);color:white;font-size:.7rem;font-weight:700;padding:2px 6px;border-radius:10px;"
+          x-text="$store.notifs.count"></span>
+      </a>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="user-chip" x-data>
+        <div class="user-avatar" x-text="$store.auth.firstName[0]?.toUpperCase()"></div>
+        <div class="user-info">
+          <div class="user-name" x-text="$store.auth.user?.full_name || '—'"></div>
+          <div class="user-role">Student
+            <span x-show="$store.auth.isSubscribed" style="color:var(--saffron);">⭐</span>
+          </div>
+        </div>
+        <button class="logout-btn" @click="$store.auth.logout()" title="Log out">↗</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="main"
+    x-data="{
+      profile: null,
+      classes: [],
+      notes: [],
+      assessments: [],
+      loading: true,
+
+      async init() {
+        if (!TG.TokenStore.isLoggedIn()) return;
+        Alpine.store('notifs').fetch();
+        try {
+          const [p, c, n, a] = await Promise.allSettled([
+            TG.Students.getMe(),
+            TG.Classes.list({ limit: 5 }),
+            TG.Notes.getForClass ? Promise.resolve([]) : Promise.resolve([]),
+            TG.Assessments.getHistory(),
+          ]);
+          this.profile    = p.status === 'fulfilled' ? p.value : null;
+          this.classes    = c.status === 'fulfilled' ? (Array.isArray(c.value) ? c.value : c.value?.items || []) : [];
+          this.assessments= a.status === 'fulfilled' ? (Array.isArray(a.value) ? a.value.slice(0,4) : []) : [];
+        } catch {}
+        this.loading = false;
+      },
+
+      get isSubscribed() {
+        return TG.TokenStore.getUser()?.is_subscribed;
+      },
+
+      async startSubscription() {
+        try {
+            const plans = await TG.Subscriptions.list();
+            const paid = Array.isArray(plans) ? plans.filter(p => p.price_monthly_paise > 0 && p.is_active) : [];
+            if (!paid.length) { alert('No paid plans available.'); return; }
+
+            // Build a simple plan picker dialog
+            const opts = paid.map((p, i) => `${i+1}. ${p.name} — ₹${p.price_monthly_rupees}/mo or ₹${p.price_annual_rupees}/yr`).join('\n');
+            const choice = prompt(`Choose a plan:\n\n${opts}\n\nEnter number (1-${paid.length}):`);
+            const idx = parseInt(choice) - 1;
+            if (isNaN(idx) || idx < 0 || idx >= paid.length) return;
+
+            const selected = paid[idx];
+
+            // Ask monthly or annual
+            const period = prompt(`Choose period for ${selected.name}:\n1. Monthly — ₹${selected.price_monthly_rupees}\n2. Annual — ₹${selected.price_annual_rupees}\n\nEnter 1 or 2:`);
+            const plan_id = selected.id;
+            const billing = period === '2' ? 'annual' : 'monthly';
+
+            const order = await TG.Subscriptions.createOrder(plan_id, billing);
+
+            if (!order) { alert('Could not create order.'); return; }
+
+            if (typeof Razorpay === 'undefined') {
+            alert('Add RAZORPAY_KEY_ID to api.js to activate checkout.\nOrder: ' + JSON.stringify(order));
+            return;
+            }
+
+            const rzp = new Razorpay({
+            key: window.RAZORPAY_KEY_ID || '',
+            subscription_id: order.razorpay_subscription_id,
+            name: 'TamGam',
+            description: `${selected.name} — ${billing}`,
+            theme: { color: '#E8640C' },
+            handler: () => {
+                alert('Payment successful! Your subscription is now active.');
+                window.location.reload();
+            },
+            });
+            rzp.open();
+
+        } catch(e) {
+            alert(e.message || 'Could not start subscription.');
+        }
+        },
+
+      scoreClass(pct) {
+        if (pct >= 75) return 'score-high';
+        if (pct >= 45) return 'score-mid';
+        return 'score-low';
+      },
+
+      subjectColor(s) { return Utils.subjectColor(s); },
+    }"
+  >
+    <!-- Page header -->
+    <div class="page-header">
+      <h1 x-data>Good day, <span x-text="$store.auth.firstName"></span></h1>
+      <p>Here's where you left off. Keep the flame burning.</p>
+    </div>
+
+    <!-- Subscription banner (unsubscribed only) -->
+    <div class="sub-banner" x-show="!isSubscribed && !loading">
+      <div class="sub-banner-text">
+        <h3>🔒 Unlock the full TamGam experience</h3>
+        <p>Subscribe to access AI notes, assessments, Diya tutor, and live class links — ₹299/month.</p>
+      </div>
+      <a href="/plans.html" class="btn-sub">Subscribe now →</a>
+    </div>
+
+    <!-- Stats row -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-icon">🔥</span>
+        <div class="stat-label">Day streak</div>
+        <div class="stat-value" x-text="profile?.streak_days ?? '—'"></div>
+        <div class="stat-sub">Keep it going!</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">📊</span>
+        <div class="stat-label">Performance score</div>
+        <div class="stat-value" x-text="profile?.performance_score != null ? Math.round(profile.performance_score) + '%' : '—'"></div>
+        <div class="stat-sub">Overall average</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">🎯</span>
+        <div class="stat-label">Understanding level</div>
+        <div class="stat-value" x-text="profile?.understanding_level ?? '—'"></div>
+        <div class="stat-sub">Scale of 1–5</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">🏅</span>
+        <div class="stat-label">Badges earned</div>
+        <div class="stat-value" x-text="profile?.badges?.length ?? 0"></div>
+        <div class="stat-sub">Keep earning!</div>
+      </div>
+    </div>
+
+    <!-- Main grid -->
+    <div class="dash-grid">
+
+      <!-- LEFT COLUMN -->
+      <div>
+
+        <!-- Upcoming classes -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📹 Upcoming classes</span>
+            <a href="#" class="card-link">View all</a>
+          </div>
+          <div class="card-body">
+            <!-- Loading skeleton -->
+            <template x-if="loading">
+              <div>
+                <template x-for="i in 3">
+                  <div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--ivory-dk);">
+                    <div class="skeleton" style="width:10px;height:10px;border-radius:50%;margin-top:4px;flex-shrink:0;"></div>
+                    <div style="flex:1;">
+                      <div class="skeleton skel-line"></div>
+                      <div class="skeleton skel-line skel-short"></div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </template>
+
+            <!-- Empty state -->
+            <template x-if="!loading && classes.length === 0">
+              <div class="empty">
+                <div class="empty-icon">📅</div>
+                <p>No upcoming classes yet. Your teacher will schedule one soon.</p>
+              </div>
+            </template>
+
+            <!-- Class items -->
+            <template x-for="cls in classes" :key="cls.id">
+              <div class="class-item">
+                <div class="class-dot" :style="`background:${subjectColor(cls.subject)}`"></div>
+                <div class="class-info">
+                  <div class="class-name" x-text="cls.title"></div>
+                  <div class="class-meta">
+                    <span x-text="Utils.formatDateTime(cls.scheduled_at)"></span>
+                    Â· <span x-text="cls.subject"></span>
+                  </div>
+                </div>
+                <div class="class-action">
+                  <template x-if="isSubscribed && cls.meet_link">
+                    <a :href="cls.meet_link" target="_blank">Join →</a>
+                  </template>
+                  <template x-if="!isSubscribed || !cls.meet_link">
+                    <span class="gated-pill">🔒 Subscribe</span>
+                  </template>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Recent assessments -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🧪 Recent assessments</span>
+            <a href="#" class="card-link">View all</a>
+          </div>
+          <div class="card-body">
+            <template x-if="!loading && assessments.length === 0">
+              <div class="empty">
+                <div class="empty-icon">🧪</div>
+                <p x-show="isSubscribed">No assessments yet. Attend a class to unlock one.</p>
+                <p x-show="!isSubscribed">Subscribe to access adaptive assessments.</p>
+              </div>
+            </template>
+
+            <template x-for="a in assessments" :key="a.id">
+              <div class="assess-row">
+                <div class="score-circle" :class="scoreClass(a.score_pct)">
+                  <span x-text="a.score_pct != null ? Math.round(a.score_pct) + '%' : '?'"></span>
+                </div>
+                <div class="assess-info">
+                  <div class="assess-name" x-text="a.class_title || 'Assessment'"></div>
+                  <div class="assess-date" x-text="Utils.relativeTime(a.completed_at)"></div>
+                  <div class="progress-bar">
+                    <div class="progress-fill"
+                      :style="`width:${a.score_pct ?? 0}%;background:${a.score_pct>=75?'#059669':a.score_pct>=45?'var(--saffron)':'#DC2626'}`">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div>
+
+        <!-- Diya shortcut -->
+        <div class="diya-cta">
+          <div style="font-size:2rem;margin-bottom:12px;"><img src="/logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></div>
+          <h3>Ask Diya anything</h3>
+          <p>Diya is your AI tutor, trained on your class content. Ask about today's topic or anything you're stuck on.</p>
+          <template x-if="isSubscribed">
+            <a href="/diya.html" class="btn-diya">Chat with Diya →</a>
+          </template>
+          <template x-if="!isSubscribed">
+            <div style="background:rgba(255,255,255,.1);border-radius:8px;padding:10px 14px;font-size:0.82rem;opacity:.9;">
+              🔒 Subscribe to chat with Diya
+            </div>
+          </template>
+        </div>
+
+        <!-- Subjects / progress -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📈 My subjects</span>
+          </div>
+          <div class="card-body">
+            <template x-if="loading">
+              <div>
+                <template x-for="i in 3">
+                  <div style="padding:10px 0;">
+                    <div class="skeleton skel-line"></div>
+                    <div class="skeleton" style="height:6px;border-radius:3px;margin-top:8px;"></div>
+                  </div>
+                </template>
+              </div>
+            </template>
+            <template x-if="!loading && (!profile?.subjects || profile.subjects.length === 0)">
+              <div class="empty">
+                <p style="margin-bottom:12px;">No subjects yet.</p>
+                <a href="/find-teachers.html" style="display:inline-flex;align-items:center;gap:6px;background:var(--saffron);color:white;padding:10px 18px;border-radius:10px;font-size:0.85rem;font-weight:600;text-decoration:none;transition:transform .2s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">
+                  🔍 Find a teacher
+                </a>
+              </div>
+            </template>
+            <template x-for="subj in (profile?.subjects || [])" :key="subj.name">
+              <div style="padding:10px 0;border-bottom:1px solid var(--ivory-dk);">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                  <span style="font-size:.88rem;font-weight:600;" x-text="subj.name"></span>
+                  <span style="font-size:.78rem;color:var(--ink-lt);" x-text="(subj.score_pct ?? 0) + '%'"></span>
+                </div>
+                <div class="progress-bar">
+                  <div class="progress-fill"
+                    :style="`width:${subj.score_pct??0}%;background:${subjectColor(subj.name)}`">
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Badges -->
+        <div class="card" x-show="profile?.badges?.length > 0">
+          <div class="card-header">
+            <span class="card-title">🏅 Badges</span>
+          </div>
+          <div class="card-body" style="display:flex;flex-wrap:wrap;gap:8px;">
+            <template x-for="badge in (profile?.badges || [])" :key="badge">
+              <div style="background:var(--ivory);border:1px solid var(--ivory-dk);border-radius:8px;padding:6px 12px;font-size:0.82rem;font-weight:600;" x-text="badge"></div>
+            </template>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>

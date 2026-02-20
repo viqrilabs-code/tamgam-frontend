@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Books — TamGam Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display@0;1&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js" defer></script>
+  <script src="/shared/api.js"></script>
+  <script src="/shared/auth.js"></script>
+  <style>
+    :root {
+      --saffron:#E8640C;--saffron-dk:#C04F06;
+      --teal:#0D5C63;--teal-lt:#1A8A94;
+      --ivory:#FDF6EC;--ivory-dk:#F0E4CC;
+      --ink:#1A1A2E;--ink-lt:#3D3D5C;
+      --gold:#D4A017;--cream:#FEFBF4;
+      --err:#DC2626;--ok:#059669;--warn:#D97706;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);display:flex;min-height:100vh;}
+
+    .sidebar{width:220px;flex-shrink:0;background:var(--ink);min-height:100vh;padding:24px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;}
+    .sidebar-logo{padding:0 20px 24px;display:flex;align-items:center;gap:8px;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:16px;}
+    .flame{font-size:20px;animation:flicker 3s ease-in-out infinite;}
+    @keyframes flicker{0%,100%{filter:drop-shadow(0 0 8px rgba(232,100,12,.5));}50%{filter:drop-shadow(0 0 14px rgba(232,100,12,.9));}}
+    .sidebar-brand{font-family:'DM Serif Display',serif;font-size:1.2rem;color:white;}
+    .admin-pill{background:rgba(220,38,38,.2);color:#f87171;font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:6px;letter-spacing:.05em;text-transform:uppercase;}
+    .nav-section{padding:0 12px;margin-bottom:4px;}
+    .nav-label{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);padding:6px 8px;}
+    .nav-item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:9px;color:rgba(255,255,255,.65);font-size:.85rem;font-weight:500;cursor:pointer;transition:all .2s;text-decoration:none;margin-bottom:1px;}
+    .nav-item:hover{background:rgba(255,255,255,.08);color:white;}
+    .nav-item.active{background:var(--saffron);color:white;}
+    .nav-icon{font-size:1rem;width:18px;text-align:center;}
+    .sidebar-footer{margin-top:auto;padding:14px 12px;border-top:1px solid rgba(255,255,255,.08);}
+    .user-chip{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;background:rgba(255,255,255,.07);}
+    .user-avatar{width:32px;height:32px;border-radius:50%;background:var(--err);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;color:white;flex-shrink:0;}
+    .user-name{font-size:.82rem;font-weight:600;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .user-role{font-size:.72rem;color:rgba(255,255,255,.4);}
+    .logout-btn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.4);font-size:1rem;padding:3px;margin-left:auto;transition:color .2s;}
+    .logout-btn:hover{color:var(--saffron);}
+
+    .main{flex:1;padding:32px 36px;overflow-y:auto;}
+    .page-header{margin-bottom:28px;display:flex;justify-content:space-between;align-items:flex-start;}
+    .page-header h1{font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--ink);margin-bottom:4px;}
+    .page-header p{font-size:.9rem;color:var(--ink-lt);}
+
+    .card{background:white;border-radius:16px;border:1px solid var(--ivory-dk);overflow:hidden;margin-bottom:24px;}
+    .card-header{padding:18px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--ivory-dk);}
+    .card-title{font-size:.95rem;font-weight:700;color:var(--ink);}
+    .card-body{padding:20px;}
+
+    .upload-zone{border:2px dashed var(--ivory-dk);border-radius:12px;padding:36px;text-align:center;cursor:pointer;transition:all .2s;background:var(--ivory);}
+    .upload-zone:hover,.upload-zone.drag-over{border-color:var(--saffron);background:rgba(232,100,12,.04);}
+    .upload-icon{font-size:2.4rem;margin-bottom:8px;}
+    .upload-label{font-size:.9rem;font-weight:600;color:var(--ink);margin-bottom:4px;}
+    .upload-sub{font-size:.8rem;color:var(--ink-lt);}
+
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px;}
+    .form-full{grid-column:1/-1;}
+    .form-group{display:flex;flex-direction:column;gap:6px;}
+    .form-label{font-size:.78rem;font-weight:600;color:var(--ink-lt);text-transform:uppercase;letter-spacing:.04em;}
+    .form-input{padding:9px 12px;border:1.5px solid var(--ivory-dk);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--ink);outline:none;background:var(--cream);transition:border-color .2s;}
+    .form-input:focus{border-color:var(--saffron);}
+    .form-input::placeholder{color:var(--ink-lt);opacity:.6;}
+    select.form-input{cursor:pointer;}
+
+    .file-pill{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--ivory);border-radius:10px;border:1px solid var(--ivory-dk);margin-top:12px;}
+    .file-pill-icon{font-size:1.2rem;}
+    .file-pill-name{font-size:.85rem;font-weight:600;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .file-pill-size{font-size:.75rem;color:var(--ink-lt);flex-shrink:0;}
+    .file-pill-remove{background:none;border:none;cursor:pointer;font-size:.9rem;color:var(--ink-lt);padding:2px;transition:color .2s;}
+    .file-pill-remove:hover{color:var(--err);}
+
+    .progress-wrap{background:var(--ivory-dk);border-radius:99px;height:6px;overflow:hidden;margin-top:4px;}
+    .progress-bar{height:100%;background:var(--saffron);border-radius:99px;transition:width .3s;}
+    .progress-bar.indeterminate{animation:progress-pulse 1.2s ease-in-out infinite;width:40%!important;}
+    @keyframes progress-pulse{0%{transform:translateX(-100%);}100%{transform:translateX(300%)}}
+
+    .btn-primary{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;background:var(--saffron);color:white;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .2s;}
+    .btn-primary:hover:not(:disabled){background:var(--saffron-dk);}
+    .btn-primary:disabled{opacity:.55;cursor:not-allowed;}
+    .btn-outline{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:none;border:1.5px solid var(--ivory-dk);color:var(--ink-lt);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;}
+    .btn-outline:hover{border-color:var(--ink);color:var(--ink);}
+    .btn-danger{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:none;border:1.5px solid transparent;color:var(--err);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s;}
+    .btn-danger:hover{background:rgba(220,38,38,.07);border-color:var(--err);}
+
+    table{width:100%;border-collapse:collapse;}
+    thead{background:var(--ivory);}
+    th{font-size:.74rem;font-weight:700;color:var(--ink-lt);text-transform:uppercase;letter-spacing:.04em;padding:10px 16px;text-align:left;}
+    td{font-size:.85rem;color:var(--ink);padding:13px 16px;border-bottom:1px solid var(--ivory-dk);}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:var(--ivory);}
+
+    .badge{display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:5px;text-transform:uppercase;letter-spacing:.03em;}
+    .badge-completed{background:rgba(5,150,105,.1);color:var(--ok);}
+    .badge-pending{background:rgba(212,160,23,.1);color:var(--warn);}
+    .badge-processing{background:rgba(13,92,99,.1);color:var(--teal);}
+    .badge-failed{background:rgba(220,38,38,.1);color:var(--err);}
+
+    .key-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;}
+    .key-card{padding:14px;border-radius:10px;border:1.5px solid var(--ivory-dk);text-align:center;}
+    .key-card.available{border-color:rgba(5,150,105,.4);background:rgba(5,150,105,.04);}
+    .key-card.exhausted{border-color:rgba(220,38,38,.3);background:rgba(220,38,38,.04);}
+    .key-num{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-lt);margin-bottom:6px;}
+    .key-dot{width:10px;height:10px;border-radius:50%;margin:0 auto 6px;}
+    .key-dot.green{background:var(--ok);}
+    .key-dot.red{background:var(--err);}
+    .key-status-text{font-size:.75rem;font-weight:600;}
+    .key-recover{font-size:.7rem;color:var(--ink-lt);margin-top:2px;}
+
+    .alert{padding:12px 16px;border-radius:10px;font-size:.85rem;margin-bottom:16px;}
+    .alert-ok{background:rgba(5,150,105,.1);color:var(--ok);border:1px solid rgba(5,150,105,.2);}
+    .alert-err{background:rgba(220,38,38,.08);color:var(--err);border:1px solid rgba(220,38,38,.2);}
+
+    .empty{text-align:center;padding:40px;color:var(--ink-lt);}
+    .empty-icon{font-size:2.2rem;margin-bottom:8px;}
+
+    .spinner{width:14px;height:14px;border-radius:50%;border:2.5px solid rgba(255,255,255,.3);border-top-color:white;animation:spin .6s linear infinite;display:inline-block;}
+    .spinner-dark{border:2.5px solid rgba(26,26,46,.15);border-top-color:var(--ink);}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    .toggle{position:relative;width:36px;height:20px;flex-shrink:0;}
+    .toggle input{opacity:0;width:0;height:0;}
+    .toggle-slider{position:absolute;inset:0;background:var(--ivory-dk);border-radius:99px;cursor:pointer;transition:.2s;}
+    .toggle-slider:before{content:'';position:absolute;width:14px;height:14px;border-radius:50%;background:white;top:3px;left:3px;transition:.2s;}
+    input:checked+.toggle-slider{background:var(--ok);}
+    input:checked+.toggle-slider:before{transform:translateX(16px);}
+  </style>
+
+  <script>
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('booksPage', () => ({
+        dragOver: false,
+        selectedFile: null,
+        title: '',
+        author: '',
+        subject: '',
+        description: '',
+        autoEmbed: true,
+        uploading: false,
+        uploadProgress: 0,
+        uploadMsg: '',
+        uploadError: '',
+        books: [],
+        booksLoading: true,
+        filterStatus: '',
+        filterSubject: '',
+        keyStatus: null,
+        keyLoading: true,
+        deletingId: null,
+
+        async init() {
+          Guards.requireAdmin();
+          await Promise.all([this.loadBooks(), this.loadKeyStatus()]);
+        },
+
+        handleFileDrop(e) {
+          this.dragOver = false;
+          const file = e.dataTransfer?.files[0] || e.target.files[0];
+          if (file) this.setFile(file);
+        },
+
+        setFile(file) {
+          const allowed = [
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/plain'
+          ];
+          const ext = file.name.split('.').pop().toLowerCase();
+          if (!allowed.includes(file.type) && !['pdf','docx','txt'].includes(ext)) {
+            this.uploadError = 'Unsupported file. Please upload PDF, DOCX, or TXT.';
+            return;
+          }
+          if (file.size > 50 * 1024 * 1024) {
+            this.uploadError = 'File too large. Max 50 MB.';
+            return;
+          }
+          this.selectedFile = file;
+          this.uploadError = '';
+          if (!this.title) {
+            this.title = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+          }
+        },
+
+        formatSize(bytes) {
+          if (!bytes) return '—';
+          if (bytes < 1024) return bytes + ' B';
+          if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+          return (bytes/(1024*1024)).toFixed(1) + ' MB';
+        },
+
+        fileIcon(filename) {
+          if (!filename) return '📄';
+          const ext = filename.split('.').pop().toLowerCase();
+          if (ext === 'pdf') return '📕';
+          if (ext === 'docx') return '📘';
+          return '📄';
+        },
+
+        async uploadBook() {
+          if (!this.selectedFile || !this.title.trim()) return;
+          this.uploading = true;
+          this.uploadMsg = '';
+          this.uploadError = '';
+          const fd = new FormData();
+          fd.append('file', this.selectedFile);
+          fd.append('title', this.title.trim());
+          if (this.author) fd.append('author', this.author.trim());
+          if (this.subject) fd.append('subject', this.subject.trim());
+          if (this.description) fd.append('description', this.description.trim());
+          fd.append('auto_embed', this.autoEmbed);
+          try {
+            const token = TG.TokenStore.getAccess();
+            const res = await fetch('http://localhost:8000/api/v1/admin/books/upload', {
+              method: 'POST',
+              headers: { Authorization: 'Bearer ' + token },
+              body: fd,
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Upload failed');
+            this.uploadMsg = '✅ ' + data.message;
+            this.selectedFile = null;
+            this.title = '';
+            this.author = '';
+            this.subject = '';
+            this.description = '';
+            await this.loadBooks();
+          } catch(e) {
+            this.uploadError = e.message;
+          } finally {
+            this.uploading = false;
+          }
+        },
+
+        async loadBooks() {
+          this.booksLoading = true;
+          try {
+            const token = TG.TokenStore.getAccess();
+            let url = 'http://localhost:8000/api/v1/admin/books?limit=100';
+            if (this.filterStatus) url += '&embed_status=' + this.filterStatus;
+            if (this.filterSubject) url += '&subject=' + encodeURIComponent(this.filterSubject);
+            const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token }});
+            this.books = await res.json();
+          } catch(e) {
+            console.error(e);
+          } finally {
+            this.booksLoading = false;
+          }
+        },
+
+        async deleteBook(id, title) {
+          if (this.deletingId) return;
+          if (!confirm('Delete "' + title + '" and all its embeddings?')) return;
+          this.deletingId = id;
+          try {
+            const token = TG.TokenStore.getAccess();
+            await fetch('http://localhost:8000/api/v1/admin/books/' + id, {
+              method: 'DELETE',
+              headers: { Authorization: 'Bearer ' + token },
+            });
+            this.books = this.books.filter(b => b.id !== id);
+          } catch(e) {
+            alert('Delete failed: ' + e.message);
+          } finally {
+            this.deletingId = null;
+          }
+        },
+
+        statusBadge(s) {
+          return 'badge badge-' + s;
+        },
+
+        formatDate(d) {
+          if (!d) return '—';
+          return new Date(d).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'});
+        },
+
+        async loadKeyStatus() {
+          this.keyLoading = true;
+          try {
+            const token = TG.TokenStore.getAccess();
+            const res = await fetch('http://localhost:8000/api/v1/admin/books/key-status', {
+              headers: { Authorization: 'Bearer ' + token }
+            });
+            this.keyStatus = await res.json();
+          } catch(e) {
+            console.error(e);
+          } finally {
+            this.keyLoading = false;
+          }
+        },
+      }));
+    });
+  </script>
+</head>
+<body x-data x-init="Guards.requireAdmin()">
+
+  <aside class="sidebar">
+    <a href="/" class="sidebar-logo">
+      <span class="flame">🪔</span>
+      <span class="sidebar-brand">TamGam<span class="admin-pill">Admin</span></span>
+    </a>
+    <div class="nav-section">
+      <div class="nav-label">Overview</div>
+      <a class="nav-item" href="/admin.html"><span class="nav-icon">📊</span> Dashboard</a>
+      <a class="nav-item" href="/admin.html#users"><span class="nav-icon">👥</span> Users</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Content</div>
+      <a class="nav-item active" href="/admin-books.html"><span class="nav-icon">📚</span> Books</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Moderation</div>
+      <a class="nav-item" href="/admin.html#verifications"><span class="nav-icon">🟡</span> Verifications</a>
+      <a class="nav-item" href="/admin.html#plans"><span class="nav-icon">⭐</span> Plans</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-chip" x-data>
+        <div class="user-avatar" x-text="($store.auth.user?.full_name || 'A')[0].toUpperCase()"></div>
+        <div>
+          <div class="user-name" x-text="$store.auth.user?.full_name || '—'"></div>
+          <div class="user-role">Admin</div>
+        </div>
+        <button class="logout-btn" @click="$store.auth.logout()">↗</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main" x-data="booksPage">
+
+    <div class="page-header">
+      <div>
+        <h1>📚 Book Library</h1>
+        <p>Upload books and build the AI knowledge base with semantic embeddings</p>
+      </div>
+      <button class="btn-outline" @click="loadBooks(); loadKeyStatus();">🔄 Refresh</button>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🔑 Gemini API Key Status</span>
+        <span style="font-size:.78rem;color:var(--ink-lt)" x-text="keyStatus ? keyStatus.available_count + ' / ' + keyStatus.total_count + ' keys available' : ''"></span>
+      </div>
+      <div class="card-body">
+        <template x-if="keyLoading">
+          <div style="text-align:center;padding:16px;"><div class="spinner spinner-dark"></div></div>
+        </template>
+        <template x-if="!keyLoading && keyStatus">
+          <div class="key-grid">
+            <template x-for="key in keyStatus.keys" :key="key.index">
+              <div class="key-card" :class="key.available ? 'available' : 'exhausted'">
+                <div class="key-num" x-text="'Key #' + key.index"></div>
+                <div class="key-dot" :class="key.available ? 'green' : 'red'"></div>
+                <div class="key-status-text" :style="key.available ? 'color:var(--ok)' : 'color:var(--err)'"
+                     x-text="key.available ? 'Available' : 'Exhausted'"></div>
+                <div class="key-recover" x-show="!key.available"
+                     x-text="'~' + key.recovery_in + 's to recover'"></div>
+              </div>
+            </template>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📤 Upload New Book</span>
+        <span style="font-size:.78rem;color:var(--ink-lt)">PDF · DOCX · TXT &nbsp;·&nbsp; Max 50 MB</span>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-ok" x-show="uploadMsg" x-text="uploadMsg"></div>
+        <div class="alert alert-err" x-show="uploadError" x-text="uploadError"></div>
+
+        <div class="upload-zone"
+             :class="dragOver ? 'drag-over' : ''"
+             @dragover.prevent="dragOver=true"
+             @dragleave="dragOver=false"
+             @drop.prevent="handleFileDrop($event)"
+             @click="$refs.fileInput.click()"
+             x-show="!selectedFile">
+          <div class="upload-icon">📂</div>
+          <div class="upload-label">Drop your book here or <b style="color:var(--saffron)">browse</b></div>
+          <div class="upload-sub">Supports PDF, DOCX, and TXT files</div>
+        </div>
+        <input type="file" x-ref="fileInput" accept=".pdf,.docx,.txt" style="display:none"
+               @change="handleFileDrop($event)">
+
+        <div class="file-pill" x-show="selectedFile">
+          <span class="file-pill-icon" x-text="fileIcon(selectedFile?.name)"></span>
+          <span class="file-pill-name" x-text="selectedFile?.name"></span>
+          <span class="file-pill-size" x-text="formatSize(selectedFile?.size)"></span>
+          <button class="file-pill-remove" @click="selectedFile=null;title=''">✕</button>
+        </div>
+
+        <div class="form-grid" x-show="selectedFile">
+          <div class="form-group form-full">
+            <label class="form-label">Book Title *</label>
+            <input class="form-input" type="text" placeholder="e.g. NCERT Mathematics Class 9" x-model="title" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Author</label>
+            <input class="form-input" type="text" placeholder="e.g. R.D. Sharma" x-model="author" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Subject</label>
+            <select class="form-input" x-model="subject">
+              <option value="">Select subject…</option>
+              <option>Mathematics</option>
+              <option>Science</option>
+              <option>Physics</option>
+              <option>Chemistry</option>
+              <option>Biology</option>
+              <option>English</option>
+              <option>Hindi</option>
+              <option>History</option>
+              <option>Geography</option>
+              <option>Civics</option>
+              <option>Economics</option>
+              <option>Computer Science</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Description (optional)</label>
+            <input class="form-input" type="text" placeholder="Brief description of the book" x-model="description" />
+          </div>
+
+          <div class="form-group form-full" style="flex-direction:row;align-items:center;gap:12px;">
+            <label class="toggle">
+              <input type="checkbox" x-model="autoEmbed" />
+              <span class="toggle-slider"></span>
+            </label>
+            <div>
+              <div style="font-size:.88rem;font-weight:600;color:var(--ink);">Auto-embed after upload</div>
+              <div style="font-size:.78rem;color:var(--ink-lt);">Starts generating embeddings immediately in the background</div>
+            </div>
+          </div>
+
+          <div class="form-group form-full" style="flex-direction:row;gap:10px;align-items:center;">
+            <button class="btn-primary" @click="uploadBook()"
+                    :disabled="uploading || !title.trim() || !selectedFile">
+              <template x-if="uploading"><span class="spinner"></span></template>
+              <template x-if="!uploading"><span>🚀</span></template>
+              <span x-text="uploading ? 'Uploading…' : 'Upload & Embed'"></span>
+            </button>
+            <div x-show="uploading" style="flex:1;">
+              <div style="font-size:.78rem;color:var(--ink-lt);margin-bottom:4px;">Embedding in background — you can leave this page</div>
+              <div class="progress-wrap"><div class="progress-bar indeterminate"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📖 All Books</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select class="form-input" style="width:130px;padding:6px 10px;font-size:.8rem;" x-model="filterStatus" @change="loadBooks()">
+            <option value="">All status</option>
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+            <option value="completed">Completed</option>
+            <option value="failed">Failed</option>
+          </select>
+          <select class="form-input" style="width:140px;padding:6px 10px;font-size:.8rem;" x-model="filterSubject" @change="loadBooks()">
+            <option value="">All subjects</option>
+            <option>Mathematics</option>
+            <option>Science</option>
+            <option>Physics</option>
+            <option>Chemistry</option>
+            <option>Biology</option>
+            <option>English</option>
+            <option>History</option>
+            <option>Geography</option>
+            <option>Computer Science</option>
+          </select>
+        </div>
+      </div>
+
+      <template x-if="booksLoading">
+        <div style="text-align:center;padding:40px;"><div class="spinner spinner-dark"></div></div>
+      </template>
+
+      <template x-if="!booksLoading && books.length === 0">
+        <div class="empty">
+          <div class="empty-icon">📭</div>
+          <div style="font-weight:600;margin-bottom:4px;">No books yet</div>
+          <div style="font-size:.85rem;">Upload your first book above to build the AI knowledge base</div>
+        </div>
+      </template>
+
+      <template x-if="!booksLoading && books.length > 0">
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th><th>Subject</th><th>Pages</th><th>Chunks</th><th>Status</th><th>Uploaded</th><th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="book in books" :key="book.id">
+              <tr>
+                <td>
+                  <div style="font-weight:600;color:var(--ink);" x-text="book.title"></div>
+                  <div style="font-size:.78rem;color:var(--ink-lt);" x-text="book.author || '—'"></div>
+                </td>
+                <td>
+                  <span x-show="book.subject" style="font-size:.82rem;background:rgba(13,92,99,.08);color:var(--teal);padding:2px 8px;border-radius:4px;font-weight:600;" x-text="book.subject"></span>
+                  <span x-show="!book.subject" style="color:var(--ink-lt)">—</span>
+                </td>
+                <td x-text="book.page_count || '—'"></td>
+                <td>
+                  <span x-text="book.chunk_count ?? '—'"></span>
+                  <template x-if="book.embed_status === 'processing'">
+                    <div class="progress-wrap" style="width:60px;margin-top:4px;"><div class="progress-bar indeterminate"></div></div>
+                  </template>
+                </td>
+                <td>
+                  <span :class="statusBadge(book.embed_status)" x-text="book.embed_status"></span>
+                  <div x-show="book.embed_status === 'failed'" style="font-size:.72rem;color:var(--err);margin-top:2px;"
+                       x-text="book.embed_error ? book.embed_error.substring(0,60) + '…' : ''"></div>
+                </td>
+                <td x-text="formatDate(book.created_at)"></td>
+                <td>
+                  <button class="btn-danger" :disabled="deletingId === book.id" @click="deleteBook(book.id, book.title)">
+                    <template x-if="deletingId === book.id"><span class="spinner" style="border-top-color:var(--err);border-color:rgba(220,38,38,.2);"></span></template>
+                    <template x-if="deletingId !== book.id"><span>🗑</span></template>
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </template>
+
+      <template x-if="!booksLoading && books.length > 0">
+        <div style="padding:12px 16px;border-top:1px solid var(--ivory-dk);font-size:.78rem;color:var(--ink-lt);">
+          <span x-text="books.length + ' book(s) · ' + books.filter(b=>b.embed_status==='completed').length + ' embedded · ' + books.reduce((a,b)=>(a + (b.chunk_count||0)),0).toLocaleString() + ' total chunks'"></span>
+        </div>
+      </template>
+    </div>
+
+  </main>
+</body>
+</html>

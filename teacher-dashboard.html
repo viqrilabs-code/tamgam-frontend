@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teacher Dashboard — TamGam</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display@0;1&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js" defer></script>
+  <script src="/shared/api.js"></script>
+  <script src="/shared/auth.js"></script>
+  <style>
+    :root {
+      --saffron:#E8640C;--saffron-dk:#C04F06;--saffron-lt:#F5914A;
+      --teal:#0D5C63;--teal-lt:#1A8A94;
+      --ivory:#FDF6EC;--ivory-dk:#F0E4CC;
+      --ink:#1A1A2E;--ink-lt:#3D3D5C;
+      --gold:#D4A017;--cream:#FEFBF4;
+    }
+    * { margin:0;padding:0;box-sizing:border-box; }
+    body { font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);display:flex;min-height:100vh; }
+
+    /* ── Sidebar (teacher teal theme) ── */
+    .sidebar {
+      width: 240px;flex-shrink:0;
+      background: var(--teal);
+      min-height:100vh;padding:28px 0;
+      display:flex;flex-direction:column;
+      position:sticky;top:0;height:100vh;overflow-y:auto;
+    }
+    .sidebar-logo { padding:0 24px 28px;display:flex;align-items:center;gap:8px;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:20px; }
+    .flame { font-size:22px;animation:flicker 3s ease-in-out infinite; }
+    @keyframes flicker { 0%,100%{filter:drop-shadow(0 0 8px rgba(232,100,12,.5));} 50%{filter:drop-shadow(0 0 14px rgba(232,100,12,.9));} }
+    .sidebar-brand { font-family:'DM Serif Display',serif;font-size:1.3rem;color:white; }
+    .sidebar-brand em { color:var(--saffron-lt);font-style:normal; }
+    .nav-section { padding:0 16px;margin-bottom:4px; }
+    .nav-label { font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);padding:8px 8px 6px; }
+    .nav-item { display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:rgba(255,255,255,.7);font-size:.9rem;font-weight:500;cursor:pointer;transition:all .2s;text-decoration:none;margin-bottom:2px; }
+    .nav-item:hover { background:rgba(255,255,255,.1);color:white; }
+    .nav-item.active { background:rgba(255,255,255,.15);color:white;font-weight:600; }
+    .nav-icon { font-size:1.05rem;width:20px;text-align:center; }
+    .sidebar-footer { margin-top:auto;padding:16px;border-top:1px solid rgba(255,255,255,.1); }
+    .user-chip { display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.1); }
+    .user-avatar { width:36px;height:36px;border-radius:50%;background:var(--saffron);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;color:white;flex-shrink:0; }
+    .user-info { overflow:hidden; }
+    .user-name { font-size:.85rem;font-weight:600;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .user-role { font-size:.75rem;color:rgba(255,255,255,.5); }
+    .logout-btn { background:none;border:none;cursor:pointer;color:rgba(255,255,255,.4);font-size:1.1rem;padding:4px;margin-left:auto;transition:color .2s; }
+    .logout-btn:hover { color:var(--saffron-lt); }
+
+    /* ── Main ── */
+    .main { flex:1;padding:36px 40px;overflow-y:auto; }
+    .page-header { margin-bottom:32px; }
+    .page-header h1 { font-family:'Playfair Display',serif;font-size:2rem;color:var(--ink);margin-bottom:4px; }
+    .page-header p { font-size:.95rem;color:var(--ink-lt); }
+
+    /* ── Verification banner ── */
+    .verify-banner {
+      display:flex;align-items:center;gap:16px;
+      border-radius:14px;padding:16px 20px;margin-bottom:24px;
+      border:1.5px solid;flex-wrap:wrap;
+    }
+    .verify-banner.pending { background:rgba(212,160,23,.08);border-color:rgba(212,160,23,.3); }
+    .verify-banner.unverified { background:rgba(232,100,12,.08);border-color:rgba(232,100,12,.25); }
+    .verify-banner.verified { background:rgba(5,150,105,.08);border-color:rgba(5,150,105,.25); }
+    .verify-text h4 { font-size:.9rem;font-weight:600;margin-bottom:3px; }
+    .verify-text p  { font-size:.82rem;color:var(--ink-lt); }
+    .btn-sm { padding:8px 16px;border-radius:7px;font-size:.82rem;font-weight:600;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;text-decoration:none;display:inline-block;transition:all .2s; }
+    .btn-primary { background:var(--saffron);color:white; }
+    .btn-primary:hover { background:var(--saffron-dk);transform:translateY(-1px); }
+
+    /* ── Stats ── */
+    .stats-row { display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:32px; }
+    .stat-card { background:white;border-radius:16px;padding:20px;border:1px solid var(--ivory-dk); }
+    .stat-label { font-size:.78rem;font-weight:600;color:var(--ink-lt);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em; }
+    .stat-value { font-family:'Playfair Display',serif;font-size:2rem;color:var(--ink);line-height:1; }
+    .stat-sub   { font-size:.78rem;color:var(--ink-lt);margin-top:4px; }
+    .stat-icon  { float:right;font-size:1.5rem;opacity:.7; }
+
+    /* ── Grid ── */
+    .dash-grid { display:grid;grid-template-columns:1fr 340px;gap:24px; }
+    @media (max-width:1100px) { .dash-grid { grid-template-columns:1fr; } }
+
+    /* ── Card ── */
+    .card { background:white;border-radius:20px;border:1px solid var(--ivory-dk);overflow:hidden;margin-bottom:24px; }
+    .card-header { padding:20px 24px 0;display:flex;justify-content:space-between;align-items:center; }
+    .card-title { font-size:1rem;font-weight:700;color:var(--ink); }
+    .card-link  { font-size:.82rem;color:var(--teal);text-decoration:none;font-weight:600; }
+    .card-link:hover { text-decoration:underline; }
+    .card-body  { padding:16px 24px 20px; }
+
+    /* ── Class table ── */
+    .class-row { display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--ivory-dk); }
+    .class-row:last-child { border-bottom:none; }
+    .class-dot { width:10px;height:10px;border-radius:50%;flex-shrink:0; }
+    .class-info { flex:1; }
+    .class-name { font-size:.88rem;font-weight:600;color:var(--ink);margin-bottom:2px; }
+    .class-meta { font-size:.76rem;color:var(--ink-lt); }
+    .status-chip { font-size:.72rem;font-weight:600;padding:3px 8px;border-radius:5px; }
+    .chip-scheduled { background:rgba(13,92,99,.1);color:var(--teal); }
+    .chip-live      { background:rgba(220,38,38,.1);color:#DC2626;animation:pulse-chip 1.5s ease-in-out infinite; }
+    .chip-completed { background:var(--ivory-dk);color:var(--ink-lt); }
+    @keyframes pulse-chip { 0%,100%{opacity:1;} 50%{opacity:.6;} }
+    .class-actions { display:flex;gap:6px; }
+    .action-btn {
+      font-size:.75rem;font-weight:600;padding:4px 10px;border-radius:6px;
+      border:1px solid;cursor:pointer;background:none;font-family:'DM Sans',sans-serif;
+      transition:all .2s;text-decoration:none;display:inline-block;
+    }
+    .action-teal  { border-color:var(--teal);color:var(--teal); }
+    .action-teal:hover { background:var(--teal);color:white; }
+    .action-saf   { border-color:var(--saffron);color:var(--saffron); }
+    .action-saf:hover { background:var(--saffron);color:white; }
+
+    /* ── Create class modal ── */
+    .modal-overlay {
+      position:fixed;inset:0;background:rgba(26,26,46,.5);
+      backdrop-filter:blur(4px);z-index:100;
+      display:flex;align-items:center;justify-content:center;padding:20px;
+    }
+    .modal {
+      background:white;border-radius:24px;width:100%;max-width:480px;
+      padding:32px;box-shadow:0 24px 80px rgba(26,26,46,.2);
+    }
+    .modal-title { font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--ink);margin-bottom:20px; }
+    .field { margin-bottom:16px; }
+    .field label { display:block;font-size:.85rem;font-weight:600;color:var(--ink);margin-bottom:5px; }
+    .field input, .field select, .field textarea {
+      width:100%;padding:11px 13px;
+      background:var(--cream);border:1.5px solid var(--ivory-dk);
+      border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--ink);outline:none;transition:border-color .2s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,92,99,.1); }
+    .field textarea { resize:vertical;min-height:80px; }
+    .field-row { display:grid;grid-template-columns:1fr 1fr;gap:12px; }
+    .modal-actions { display:flex;gap:10px;justify-content:flex-end;margin-top:20px; }
+    .btn-cancel { background:var(--ivory-dk);color:var(--ink);padding:10px 20px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer; }
+    .btn-create { background:var(--teal);color:white;padding:10px 20px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .2s; }
+    .btn-create:hover { background:var(--teal-lt);transform:translateY(-1px); }
+
+    /* ── Earnings ── */
+    .earnings-row { display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--ivory-dk);font-size:.88rem; }
+    .earnings-row:last-child { border-bottom:none; }
+
+    /* ── Empty ── */
+    .empty { text-align:center;padding:28px 24px;color:var(--ink-lt); }
+    .empty-icon { font-size:2.5rem;margin-bottom:8px; }
+    .empty p { font-size:.88rem; }
+
+    /* ── Skeleton ── */
+    .skeleton { background:linear-gradient(90deg,var(--ivory-dk) 25%,var(--ivory) 50%,var(--ivory-dk) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:6px; }
+    @keyframes shimmer { to { background-position:-200% 0; } }
+    .skel-line { height:14px;margin:8px 0; }
+
+    .spinner { width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:white;animation:spin .6s linear infinite;display:inline-block; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+  </style>
+</head>
+<body x-data x-init="Guards.requireTeacher()">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <a href="/" class="sidebar-logo">
+      <span class="flame">🕯️</span>
+      <span class="sidebar-brand">Tam<em>Gam</em></span>
+    </a>
+    <div class="nav-section">
+      <div class="nav-label">Teach</div>
+      <a href="/teacher-dashboard.html" class="nav-item active">
+        <span class="nav-icon">🏠</span> Dashboard
+      </a>
+      <a href="#" class="nav-item">
+        <span class="nav-icon">📹</span> My classes
+      </a>
+      <a href="#" class="nav-item">
+        <span class="nav-icon">👥</span> My students
+      </a>
+      <a href="/community.html" class="nav-item">
+        <span class="nav-icon">💬</span> Community
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Account</div>
+      <a href="#" class="nav-item"><span class="nav-icon">👤</span> Profile</a>
+      <a href="#" class="nav-item"><span class="nav-icon">💰</span> Earnings</a>
+      <a href="#" class="nav-item"><span class="nav-icon">🔔</span> Notifications</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-chip" x-data>
+        <div class="user-avatar" x-text="$store.auth.firstName[0]?.toUpperCase()"></div>
+        <div class="user-info">
+          <div class="user-name" x-text="$store.auth.user?.full_name || '—'"></div>
+          <div class="user-role">Teacher
+            <span x-show="$store.auth.isVerifiedTeacher" style="color:#a3e635;">🟡T</span>
+          </div>
+        </div>
+        <button class="logout-btn" @click="$store.auth.logout()">↗</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="main"
+    x-data="{
+      profile: null,
+      classes: [],
+      earnings: null,
+      loading: true,
+      showCreate: false,
+      creating: false,
+
+      newClass: {
+        title: '',
+        subject: 'mathematics',
+        description: '',
+        scheduled_at: '',
+        duration_minutes: 60,
+      },
+
+      async init() {
+        Guards.requireTeacher();
+        Alpine.store('notifs').fetch();
+        try {
+          const [p, c, e] = await Promise.allSettled([
+            TG.Teachers.getMe(),
+            TG.Classes.getMine(),
+            TG.Teachers.getEarnings(),
+          ]);
+          this.profile  = p.status==='fulfilled' ? p.value : null;
+          this.classes  = c.status==='fulfilled' ? (Array.isArray(c.value) ? c.value : c.value?.items || []) : [];
+          this.earnings = e.status==='fulfilled' ? e.value : null;
+        } catch {}
+        this.loading = false;
+      },
+
+      get verificationStatus() {
+        if (!this.profile) return 'unknown';
+        if (this.profile.is_verified) return 'verified';
+        if (this.profile.verification_submitted) return 'pending';
+        return 'unverified';
+      },
+
+      statusChip(status) {
+        const map = { scheduled:'chip-scheduled', live:'chip-live', completed:'chip-completed' };
+        return map[status] || 'chip-scheduled';
+      },
+
+      statusLabel(status) {
+        const map = { scheduled:'Scheduled', live:'🔴 Live', completed:'Completed' };
+        return map[status] || status;
+      },
+
+      subjectColor(s) { return Utils.subjectColor(s); },
+
+      async createClass() {
+        if (!this.newClass.title || !this.newClass.scheduled_at) return;
+        this.creating = true;
+        try {
+          await TG.Classes.create(this.newClass);
+          this.showCreate = false;
+          this.newClass = { title:'', subject:'mathematics', description:'', scheduled_at:'', duration_minutes:60 };
+          // Refresh class list
+          const c = await TG.Classes.getMine();
+          this.classes = Array.isArray(c) ? c : c?.items || [];
+        } catch(e) {
+          alert(e.message || 'Failed to create class.');
+        } finally { this.creating = false; }
+      },
+    }"
+  >
+
+    <!-- Header -->
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <h1 x-data>Welcome, <span x-text="$store.auth.firstName"></span> 📚</h1>
+        <p>Manage your classes, students, and earnings.</p>
+      </div>
+      <button class="btn-sm btn-primary" style="margin-top:6px;" @click="showCreate = true">
+        + Schedule class
+      </button>
+    </div>
+
+    <!-- Verification banners -->
+    <div class="verify-banner unverified" x-show="verificationStatus === 'unverified' && !loading">
+      <span style="font-size:1.5rem;">📋</span>
+      <div class="verify-text" style="flex:1;">
+        <h4>Submit your verification documents</h4>
+        <p>Get the 🟡T badge and build trust with students. Upload your qualification certificates to get started.</p>
+      </div>
+      <a href="#" class="btn-sm btn-primary">Submit docs →</a>
+    </div>
+    <div class="verify-banner pending" x-show="verificationStatus === 'pending' && !loading">
+      <span style="font-size:1.5rem;">â³</span>
+      <div class="verify-text">
+        <h4 style="color:var(--gold);">Verification under review</h4>
+        <p>We're reviewing your documents. This usually takes 1–2 business days.</p>
+      </div>
+    </div>
+    <div class="verify-banner verified" x-show="verificationStatus === 'verified' && !loading">
+      <span style="font-size:1.5rem;">✅</span>
+      <div class="verify-text">
+        <h4 style="color:#059669;">You are a verified teacher 🟡T</h4>
+        <p>Students can see your verification badge on all your classes and posts.</p>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-icon">📹</span>
+        <div class="stat-label">Total classes</div>
+        <div class="stat-value" x-text="classes.length"></div>
+        <div class="stat-sub">All time</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">👥</span>
+        <div class="stat-label">Active students</div>
+        <div class="stat-value" x-text="profile?.student_count ?? '—'"></div>
+        <div class="stat-sub">Enrolled</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">💰</span>
+        <div class="stat-label">This month</div>
+        <div class="stat-value" x-text="earnings ? Utils.formatRupees(earnings.this_month_paise ?? 0) : '—'"></div>
+        <div class="stat-sub">After 20% commission</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">⭐</span>
+        <div class="stat-label">Avg. assessment score</div>
+        <div class="stat-value" x-text="profile?.avg_student_score != null ? Math.round(profile.avg_student_score)+'%' : '—'"></div>
+        <div class="stat-sub">Across all classes</div>
+      </div>
+    </div>
+
+    <!-- Grid -->
+    <div class="dash-grid">
+
+      <!-- LEFT: classes -->
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📹 My classes</span>
+            <button class="card-link" style="background:none;border:none;cursor:pointer;font-family:inherit;" @click="showCreate=true">+ New class</button>
+          </div>
+          <div class="card-body">
+            <template x-if="loading">
+              <div>
+                <template x-for="i in 4">
+                  <div style="padding:12px 0;border-bottom:1px solid var(--ivory-dk);">
+                    <div class="skeleton skel-line"></div>
+                    <div class="skeleton skel-line" style="width:55%;"></div>
+                  </div>
+                </template>
+              </div>
+            </template>
+
+            <template x-if="!loading && classes.length === 0">
+              <div class="empty">
+                <div class="empty-icon">📹</div>
+                <p>No classes yet. Schedule your first class to get started.</p>
+                <button class="btn-sm btn-primary" style="margin-top:16px;" @click="showCreate=true">Schedule class</button>
+              </div>
+            </template>
+
+            <template x-for="cls in classes" :key="cls.id">
+              <div class="class-row">
+                <div class="class-dot" :style="`background:${subjectColor(cls.subject)}`"></div>
+                <div class="class-info">
+                  <div class="class-name" x-text="cls.title"></div>
+                  <div class="class-meta">
+                    <span x-text="Utils.formatDateTime(cls.scheduled_at)"></span>
+                    Â· <span x-text="cls.duration_minutes + ' min'"></span>
+                    Â· <span x-text="cls.subject"></span>
+                  </div>
+                </div>
+                <span class="status-chip" :class="statusChip(cls.status)" x-text="statusLabel(cls.status)"></span>
+                <div class="class-actions">
+                  <template x-if="cls.meet_link">
+                    <a :href="cls.meet_link" target="_blank" class="action-btn action-teal">Open Meet</a>
+                  </template>
+                  <a href="#" class="action-btn action-saf">Manage</a>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: earnings + recent students -->
+      <div>
+
+        <!-- Earnings breakdown -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">💰 Earnings</span>
+            <a href="#" class="card-link">Full report</a>
+          </div>
+          <div class="card-body">
+            <template x-if="!earnings && !loading">
+              <div class="empty"><p>No earnings data yet.</p></div>
+            </template>
+            <template x-if="earnings">
+              <div>
+                <div class="earnings-row">
+                  <span style="color:var(--ink-lt);font-size:.85rem;">This month</span>
+                  <span style="font-weight:700;" x-text="Utils.formatRupees(earnings.this_month_paise ?? 0)"></span>
+                </div>
+                <div class="earnings-row">
+                  <span style="color:var(--ink-lt);font-size:.85rem;">Last month</span>
+                  <span style="font-weight:600;" x-text="Utils.formatRupees(earnings.last_month_paise ?? 0)"></span>
+                </div>
+                <div class="earnings-row">
+                  <span style="color:var(--ink-lt);font-size:.85rem;">All time</span>
+                  <span style="font-weight:600;" x-text="Utils.formatRupees(earnings.total_paise ?? 0)"></span>
+                </div>
+                <div style="margin-top:14px;padding:12px;background:var(--ivory);border-radius:10px;font-size:.8rem;color:var(--ink-lt);">
+                  Platform takes 20% commission. Payouts processed monthly to your registered bank account.
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Profile completeness -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">👤 Profile</span>
+            <a href="#" class="card-link">Edit</a>
+          </div>
+          <div class="card-body">
+            <template x-if="profile">
+              <div>
+                <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+                  <div style="width:52px;height:52px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:white;font-weight:700;" x-text="profile.full_name?.[0]?.toUpperCase()"></div>
+                  <div>
+                    <div style="font-weight:700;font-size:.95rem;" x-text="profile.full_name"></div>
+                    <div style="font-size:.8rem;color:var(--ink-lt);" x-text="profile.subjects?.join(', ') || 'No subjects added'"></div>
+                  </div>
+                </div>
+                <div style="font-size:.85rem;color:var(--ink-lt);line-height:1.6;" x-text="profile.bio || 'Add a bio to help students know you better.'"></div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Create class modal ── -->
+    <div class="modal-overlay" x-show="showCreate" x-transition.opacity @click.self="showCreate = false">
+      <div class="modal" @click.stop>
+        <h2 class="modal-title">Schedule a new class</h2>
+
+        <div class="field">
+          <label>Class title *</label>
+          <input type="text" placeholder="e.g. Algebra — Chapter 7: Linear Equations" x-model="newClass.title" />
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Subject *</label>
+            <select x-model="newClass.subject">
+              <option value="mathematics">Mathematics</option>
+              <option value="science">Science</option>
+              <option value="physics">Physics</option>
+              <option value="chemistry">Chemistry</option>
+              <option value="biology">Biology</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Duration (mins)</label>
+            <input type="number" min="15" max="180" x-model.number="newClass.duration_minutes" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Scheduled date & time *</label>
+          <input type="datetime-local" x-model="newClass.scheduled_at" />
+        </div>
+
+        <div class="field">
+          <label>Description <small style="font-weight:400;color:var(--ink-lt)">(optional)</small></label>
+          <textarea placeholder="What will you cover in this class?" x-model="newClass.description"></textarea>
+        </div>
+
+        <p style="font-size:.8rem;color:var(--ink-lt);margin-top:-4px;margin-bottom:16px;">
+          💡 After creating the class, paste your Google Meet link from Google Calendar using the Manage button.
+        </p>
+
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="showCreate = false">Cancel</button>
+          <button class="btn-create" @click="createClass" :disabled="creating">
+            <span x-show="!creating">Schedule class</span>
+            <span x-show="creating" class="spinner"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+</body>
+</html>

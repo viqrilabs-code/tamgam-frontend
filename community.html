@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Community — TamGam</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display@0;1&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js" defer></script>
+  <script src="/shared/api.js"></script>
+  <script src="/shared/auth.js"></script>
+  <style>
+    :root {
+      --saffron:#E8640C;--saffron-dk:#C04F06;--saffron-lt:#F5914A;
+      --teal:#0D5C63;--teal-lt:#1A8A94;
+      --ivory:#FDF6EC;--ivory-dk:#F0E4CC;
+      --ink:#1A1A2E;--ink-lt:#3D3D5C;
+      --gold:#D4A017;--cream:#FEFBF4;
+    }
+    * { margin:0;padding:0;box-sizing:border-box; }
+    body { font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);display:flex;min-height:100vh; }
+
+    /* ── Left nav ── */
+    .leftnav { width:64px;flex-shrink:0;background:var(--ink);display:flex;flex-direction:column;align-items:center;padding:20px 0;gap:4px;position:sticky;top:0;height:100vh; }
+    .leftnav-logo { font-size:22px;margin-bottom:16px;animation:flicker 3s ease-in-out infinite;text-decoration:none; }
+    @keyframes flicker { 0%,100%{filter:drop-shadow(0 0 8px rgba(232,100,12,.5));}50%{filter:drop-shadow(0 0 14px rgba(232,100,12,.9));} }
+    .leftnav-item { width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;cursor:pointer;transition:background .2s;text-decoration:none;color:rgba(255,255,255,.6); }
+    .leftnav-item:hover { background:rgba(255,255,255,.1);color:white; }
+    .leftnav-item.active { background:var(--saffron);color:white; }
+    .leftnav-bottom { margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:8px; }
+    .leftnav-avatar { width:36px;height:36px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;color:white;cursor:pointer; }
+
+    /* ── Channel sidebar ── */
+    .channels-sidebar {
+      width:220px;flex-shrink:0;
+      background:white;border-right:1px solid var(--ivory-dk);
+      padding:24px 0;position:sticky;top:0;height:100vh;overflow-y:auto;
+    }
+    .channels-heading { font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-lt);padding:0 16px 8px; }
+    .channel-item {
+      display:flex;align-items:center;gap:10px;
+      padding:9px 16px;cursor:pointer;transition:background .15s;
+      border-left:3px solid transparent;
+    }
+    .channel-item:hover { background:var(--ivory); }
+    .channel-item.active { background:rgba(232,100,12,.06);border-left-color:var(--saffron); }
+    .ch-icon { font-size:1rem;width:20px;text-align:center; }
+    .ch-name { font-size:.88rem;font-weight:600;color:var(--ink); }
+    .ch-count { margin-left:auto;font-size:.72rem;font-weight:600;color:var(--ink-lt);background:var(--ivory-dk);padding:2px 7px;border-radius:10px; }
+
+    /* ── Main feed ── */
+    .feed-main { flex:1;padding:32px 40px;max-width:800px; }
+
+    .feed-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:24px; }
+    .feed-title { font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--ink); }
+    .btn-post {
+      background:var(--saffron);color:white;padding:10px 20px;border-radius:9px;
+      border:none;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;
+      cursor:pointer;transition:all .2s;
+    }
+    .btn-post:hover { background:var(--saffron-dk);transform:translateY(-1px); }
+    .btn-post-locked { background:var(--ivory-dk);color:var(--ink-lt);cursor:not-allowed; }
+
+    /* ── Post card ── */
+    .post-card {
+      background:white;border-radius:16px;border:1px solid var(--ivory-dk);
+      padding:20px 24px;margin-bottom:16px;
+      transition:box-shadow .2s;cursor:pointer;
+    }
+    .post-card:hover { box-shadow:0 6px 24px rgba(26,26,46,.08); }
+    .post-meta {
+      display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;
+    }
+    .post-avatar {
+      width:30px;height:30px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-size:.8rem;font-weight:700;color:white;flex-shrink:0;
+    }
+    .post-author { font-size:.85rem;font-weight:600;color:var(--ink); }
+    .mark { font-size:.75rem;font-weight:700;padding:2px 6px;border-radius:4px; }
+    .mark-star { background:rgba(232,100,12,.1);color:var(--saffron); }
+    .mark-t    { background:rgba(212,160,23,.12);color:var(--gold); }
+    .post-time { font-size:.75rem;color:var(--ink-lt);margin-left:auto; }
+    .post-title { font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:6px; }
+    .post-body  { font-size:.88rem;color:var(--ink-lt);line-height:1.6; }
+    .post-footer {
+      display:flex;align-items:center;gap:16px;margin-top:14px;
+      padding-top:12px;border-top:1px solid var(--ivory-dk);
+    }
+    .reaction-btn {
+      display:flex;align-items:center;gap:4px;
+      background:none;border:none;cursor:pointer;
+      font-size:.82rem;color:var(--ink-lt);
+      padding:4px 8px;border-radius:6px;transition:background .15s;
+    }
+    .reaction-btn:hover { background:var(--ivory); }
+    .reply-count { font-size:.82rem;color:var(--ink-lt); }
+
+    /* ── Post detail panel ── */
+    .post-detail {
+      position:fixed;top:0;right:0;bottom:0;
+      width:480px;background:white;
+      border-left:1px solid var(--ivory-dk);
+      box-shadow:-8px 0 32px rgba(26,26,46,.1);
+      display:flex;flex-direction:column;
+      z-index:80;
+      transform:translateX(100%);transition:transform .3s ease;
+    }
+    .post-detail.open { transform:translateX(0); }
+    .detail-header {
+      padding:20px 24px;border-bottom:1px solid var(--ivory-dk);
+      display:flex;justify-content:space-between;align-items:center;
+    }
+    .detail-header h4 { font-size:.95rem;font-weight:700;color:var(--ink); }
+    .close-btn { background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--ink-lt); }
+    .detail-body { flex:1;overflow-y:auto;padding:20px 24px; }
+    .reply-item {
+      padding:12px 0;border-bottom:1px solid var(--ivory-dk);
+    }
+    .reply-item:last-child { border-bottom:none; }
+    .reply-item .post-meta { margin-bottom:6px; }
+    .reply-body { font-size:.88rem;color:var(--ink);line-height:1.6; }
+    .reply-input-area {
+      padding:16px 24px;border-top:1px solid var(--ivory-dk);
+      display:flex;gap:10px;align-items:flex-end;
+    }
+    .reply-input {
+      flex:1;padding:10px 12px;background:var(--ivory);
+      border:1.5px solid var(--ivory-dk);border-radius:9px;
+      font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--ink);
+      outline:none;resize:none;transition:border-color .2s;
+    }
+    .reply-input:focus { border-color:var(--saffron); }
+    .reply-send-btn {
+      padding:10px 16px;background:var(--saffron);color:white;
+      border:none;border-radius:8px;font-family:'DM Sans',sans-serif;
+      font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;
+    }
+    .reply-send-btn:hover { background:var(--saffron-dk); }
+
+    /* ── Create post modal ── */
+    .modal-overlay { position:fixed;inset:0;background:rgba(26,26,46,.5);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px; }
+    .modal { background:white;border-radius:20px;width:100%;max-width:520px;padding:28px;box-shadow:0 24px 80px rgba(26,26,46,.2); }
+    .modal-title { font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--ink);margin-bottom:20px; }
+    .field { margin-bottom:14px; }
+    .field label { display:block;font-size:.83rem;font-weight:600;color:var(--ink);margin-bottom:5px; }
+    .field input, .field textarea {
+      width:100%;padding:10px 12px;background:var(--cream);
+      border:1.5px solid var(--ivory-dk);border-radius:8px;
+      font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--ink);
+      outline:none;transition:border-color .2s;
+    }
+    .field input:focus, .field textarea:focus { border-color:var(--saffron); }
+    .field textarea { resize:vertical;min-height:100px; }
+    .modal-actions { display:flex;gap:10px;justify-content:flex-end;margin-top:16px; }
+    .btn-cancel { background:var(--ivory-dk);color:var(--ink);padding:9px 18px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer; }
+    .btn-submit { background:var(--saffron);color:white;padding:9px 18px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .2s; }
+    .btn-submit:hover { background:var(--saffron-dk); }
+
+    /* ── Empty/loading ── */
+    .empty { text-align:center;padding:48px 24px;color:var(--ink-lt); }
+    .empty-icon { font-size:2.5rem;margin-bottom:12px; }
+    .skeleton { background:linear-gradient(90deg,var(--ivory-dk) 25%,var(--ivory) 50%,var(--ivory-dk) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:6px; }
+    @keyframes shimmer { to { background-position:-200% 0; } }
+    .skel-line { height:14px;margin:8px 0; }
+    .skel-short { width:40%; }
+  </style>
+</head>
+<body x-data>
+
+  <!-- ── Left nav ── -->
+  <nav class="leftnav">
+    <a href="/" class="leftnav-logo"><img src="logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></a>
+    <a href="/dashboard.html" class="leftnav-item" title="Dashboard">🏠</a>
+    <a href="/diya.html" class="leftnav-item" title="Ask Diya"><img src="logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></a>
+    <a href="/community.html" class="leftnav-item active" title="Community">💬</a>
+    <div class="leftnav-bottom" x-data>
+      <template x-if="$store.auth.isLoggedIn">
+        <div class="leftnav-avatar" x-text="$store.auth.firstName[0]?.toUpperCase()"></div>
+      </template>
+      <template x-if="!$store.auth.isLoggedIn">
+        <a href="/login.html" class="leftnav-item" title="Log in" style="font-size:.8rem;color:rgba(255,255,255,.5);">→</a>
+      </template>
+      <template x-if="$store.auth.isLoggedIn">
+        <a class="leftnav-item" @click="$store.auth.logout()" title="Log out" style="font-size:.85rem;">↗</a>
+      </template>
+    </div>
+  </nav>
+
+  <!-- ── Channels sidebar ── -->
+  <aside class="channels-sidebar"
+    x-data="{
+      channels: [],
+      loading: true,
+      async init() {
+        try {
+          const d = await TG.Community.listChannels();
+          this.channels = Array.isArray(d) ? d : d?.channels || [];
+          // Auto-select general in the store so it shows as active
+          const general = this.channels.find(c => c.name === 'general') || this.channels[0];
+          if (general) Alpine.store('selectedChannel', general.id);
+        } catch {}
+        this.loading = false;
+      }
+    }"
+  >
+    <div style="padding:0 16px 20px;">
+      <div style="font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--ink);margin-bottom:4px;">Community</div>
+      <div style="font-size:.78rem;color:var(--ink-lt);">Learn together <img src="logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></div>
+    </div>
+    <div class="channels-heading">Channels</div>
+    <template x-if="loading">
+      <div style="padding:0 16px;">
+        <template x-for="i in 5">
+          <div class="skeleton skel-line" style="margin-bottom:10px;"></div>
+        </template>
+      </div>
+    </template>
+    <template x-for="ch in channels" :key="ch.id">
+      <div class="channel-item"
+        :class="{ active: $store.selectedChannel === ch.id }"
+        @click="$dispatch('selectchannel', ch.id); Alpine.store('selectedChannel', ch.id)"
+      >
+        <span class="ch-icon" x-text="ch.icon || '📢'"></span>
+        <span class="ch-name" x-text="ch.name"></span>
+        <span class="ch-count" x-show="ch.post_count > 0" x-text="ch.post_count"></span>
+      </div>
+    </template>
+  </aside>
+
+  <!-- ── Feed ── -->
+  <div class="feed-main"
+    x-data="{
+      channelId: null,
+      channelName: 'All Posts',
+      posts: [],
+      loading: true,
+      showCreate: false,
+      creating: false,
+      newTitle: '',
+      newBody: '',
+      // post detail panel
+      openPost: null,
+      replies: [],
+      replyText: '',
+      submittingReply: false,
+
+      get isLoggedIn() { return TG.TokenStore.isLoggedIn(); },
+      get isSubscribed() { return TG.TokenStore.getUser()?.is_subscribed; },
+
+      async init() {
+        // Auto-select general channel on load
+        try {
+          const channels = await TG.Community.listChannels();
+          const list = Array.isArray(channels) ? channels : [];
+          const general = list.find(c => c.name === 'general') || list[0];
+          if (general) {
+            this.channelId = general.id;
+            this.channelName = general.name;
+            Alpine.store('selectedChannel', general.id);
+          }
+        } catch {}
+        await this.loadPosts();
+        window.addEventListener('selectchannel', async (e) => {
+          this.channelId = e.detail;
+          await this.loadPosts();
+        });
+        window.addEventListener('postCreated', async (e) => {
+          if (e.detail?.channelId === this.channelId) await this.loadPosts();
+        });
+      },
+
+      async loadPosts() {
+        this.loading = true;
+        try {
+          if (this.channelId) {
+            const d = await TG.Community.listPosts(this.channelId);
+            this.posts = Array.isArray(d) ? d : d?.posts || [];
+          } else {
+            // All channels: load from first few channels
+            this.posts = [];
+          }
+        } catch(e) {
+          this.posts = [];
+        }
+        this.loading = false;
+      },
+
+      async openPostDetail(postId) {
+        try {
+          this.openPost = await TG.Community.getPost(postId);
+          this.replies = this.openPost?.replies || [];
+        } catch {}
+      },
+
+      async submitReply() {
+        if (!this.replyText.trim() || !this.openPost) return;
+        if (!this.isLoggedIn) { window.location.href = '/login.html'; return; }
+        this.submittingReply = true;
+        try {
+          const r = await TG.Community.reply(this.openPost.id, { body: this.replyText.trim() });
+          this.replies.push(r);
+          this.replyText = '';
+        } catch(e) {
+          alert(e.message || 'Could not post reply.');
+        } finally { this.submittingReply = false; }
+      },
+
+      async createPost() {
+        if (!this.newTitle.trim() || !this.newBody.trim() || !this.channelId) return;
+        this.creating = true;
+        try {
+          const p = await TG.Community.createPost(this.channelId, { title: this.newTitle, body: this.newBody });
+          this.posts.unshift(p);
+          this.showCreate = false;
+          this.newTitle = '';
+          this.newBody = '';
+        } catch(e) {
+          alert(e.message || 'Could not create post.');
+        } finally { this.creating = false; }
+      },
+
+      async react(postId, emoji) {
+        if (!this.isLoggedIn) { window.location.href='/login.html'; return; }
+        // Optimistic update on post list
+        const post = this.posts.find(p => p.id === postId);
+        if (post) {
+          if (!post.reactions) post.reactions = [];
+          const existing = post.reactions.find(r => r.emoji === emoji);
+          if (existing) {
+            existing.reacted_by_me ? existing.count-- : existing.count++;
+            existing.reacted_by_me = !existing.reacted_by_me;
+            if (existing.count <= 0) post.reactions = post.reactions.filter(r => r.emoji !== emoji);
+          } else {
+            post.reactions.push({ emoji, count: 1, reacted_by_me: true });
+          }
+          // Force Alpine reactivity
+          this.posts = [...this.posts];
+        }
+        // Also update open detail panel
+        if (this.openPost && this.openPost.id === postId) {
+          if (!this.openPost.reactions) this.openPost.reactions = [];
+          const existing = this.openPost.reactions.find(r => r.emoji === emoji);
+          if (existing) {
+            existing.reacted_by_me ? existing.count-- : existing.count++;
+            existing.reacted_by_me = !existing.reacted_by_me;
+            if (existing.count <= 0) this.openPost.reactions = this.openPost.reactions.filter(r => r.emoji !== emoji);
+          } else {
+            this.openPost.reactions.push({ emoji, count: 1, reacted_by_me: true });
+          }
+          this.openPost = { ...this.openPost };
+        }
+        try {
+          await TG.Community.react(postId, emoji, 'post', postId);
+        } catch {}
+      },
+
+      authorColor(name) {
+        const colors = ['#E8640C','#0D5C63','#7C3AED','#2563EB','#D4A017','#059669'];
+        let h = 0;
+        for (const c of (name||'')) h = ((h<<5)-h)+c.charCodeAt(0);
+        return colors[Math.abs(h) % colors.length];
+      },
+
+      subjectColor(s) { return Utils.subjectColor(s); },
+    }"
+  >
+
+    <div class="feed-header">
+      <h2 class="feed-title">
+        <span x-text="channelId ? channelName : '📢 Community'"></span>
+      </h2>
+      <template x-if="isLoggedIn && isSubscribed && channelId">
+        <button class="btn-post" @click="showCreate = true">+ New post</button>
+      </template>
+      <template x-if="!isLoggedIn">
+        <a href="/login.html" style="font-size:.85rem;color:var(--saffron);font-weight:600;text-decoration:none;">Log in to post →</a>
+      </template>
+      <template x-if="isLoggedIn && !isSubscribed">
+        <div style="font-size:.82rem;color:var(--ink-lt);">🔒 Subscribe to post</div>
+      </template>
+    </div>
+
+    <!-- No channel selected -->
+    <template x-if="!channelId && !loading">
+      <div class="empty">
+        <div class="empty-icon">💬</div>
+        <p>Select a channel on the left to see posts.<br>Anyone can read — subscribers can post.</p>
+      </div>
+    </template>
+
+    <!-- Loading skeleton -->
+    <template x-if="loading && channelId">
+      <div>
+        <template x-for="i in 5">
+          <div style="background:white;border-radius:16px;border:1px solid var(--ivory-dk);padding:20px 24px;margin-bottom:14px;">
+            <div class="skeleton skel-line skel-short"></div>
+            <div class="skeleton skel-line" style="width:70%;"></div>
+            <div class="skeleton skel-line" style="width:90%;"></div>
+            <div class="skeleton skel-line" style="width:50%;"></div>
+          </div>
+        </template>
+      </div>
+    </template>
+
+    <!-- Empty channel -->
+    <template x-if="!loading && channelId && posts.length === 0">
+      <div class="empty">
+        <div class="empty-icon">✨</div>
+        <p>No posts yet in this channel. Be the first to start a discussion!</p>
+        <template x-if="isSubscribed">
+          <button class="btn-post" style="margin-top:16px;" @click="showCreate = true">Start discussion</button>
+        </template>
+      </div>
+    </template>
+
+    <!-- Posts -->
+    <template x-for="post in posts" :key="post.id">
+      <div class="post-card" @click="openPostDetail(post.id)">
+        <div class="post-meta">
+          <div class="post-avatar"
+            :style="`background:${authorColor(post.author?.full_name)}`"
+            x-text="post.author?.full_name?.[0]?.toUpperCase() || '?'">
+          </div>
+          <span class="post-author" x-text="post.author?.full_name || 'Anonymous'"></span>
+          <span class="mark mark-star" x-show="post.author?.is_subscribed">⭐</span>
+          <span class="mark mark-t"    x-show="post.author?.is_verified_teacher">🟡T</span>
+          <span class="post-time" x-text="Utils.relativeTime(post.created_at)"></span>
+        </div>
+        <h3 class="post-title" x-text="post.title"></h3>
+        <p class="post-body" x-text="Utils.truncate(post.body_preview || post.body, 200)"></p>
+        <div class="post-footer" @click.stop>
+          <button class="reaction-btn" @click="react(post.id, '👍')">
+            👍 <span x-text="post.reactions?.find(r=>r.emoji==='👍')?.count || 0"></span>
+          </button>
+          <button class="reaction-btn" @click="react(post.id, '🔥')">
+            🔥 <span x-text="post.reactions?.find(r=>r.emoji==='🔥')?.count || 0"></span>
+          </button>
+          <button class="reaction-btn" @click="react(post.id, '💡')">
+            💡 <span x-text="post.reactions?.find(r=>r.emoji==='💡')?.count || 0"></span>
+          </button>
+          <button class="reply-count" @click="openPostDetail(post.id)" style="cursor:pointer;background:none;border:none;font-size:inherit;color:inherit;padding:0;">💬 <span x-text="post.reply_count || 0"></span> replies</button>
+        </div>
+      </div>
+    </template>
+
+    <!-- ── Post detail panel ── -->
+    <div class="post-detail" :class="{ open: openPost }">
+      <div class="detail-header">
+        <h4 x-text="openPost?.title || 'Post'"></h4>
+        <button class="close-btn" @click="openPost = null">✕</button>
+      </div>
+
+      <div class="detail-body">
+        <!-- Post body -->
+        <template x-if="openPost">
+          <div>
+            <div class="post-meta" style="margin-bottom:12px;">
+              <div class="post-avatar"
+                :style="`background:${authorColor(openPost.author?.full_name)}`"
+                x-text="openPost.author?.full_name?.[0]?.toUpperCase() || '?'">
+              </div>
+              <span class="post-author" x-text="openPost.author?.full_name"></span>
+              <span class="mark mark-star" x-show="openPost.author?.is_subscribed">⭐</span>
+              <span class="mark mark-t"    x-show="openPost.author?.is_verified_teacher">🟡T</span>
+              <span class="post-time" x-text="Utils.relativeTime(openPost.created_at)"></span>
+            </div>
+            <p style="font-size:.9rem;line-height:1.7;color:var(--ink);margin-bottom:20px;" x-text="openPost.body"></p>
+
+            <!-- Reactions on detail -->
+            <div style="display:flex;gap:8px;margin-bottom:20px;">
+              <template x-for="emoji in ['👍','🔥','💡','❤ï¸','👏']" :key="emoji">
+                <button class="reaction-btn" @click="react(openPost.id, emoji)">
+                  <span x-text="emoji"></span>
+                  <span x-text="openPost.reactions?.find(r=>r.emoji===emoji)?.count || 0"></span>
+                </button>
+              </template>
+            </div>
+
+            <!-- Replies heading -->
+            <div style="font-size:.82rem;font-weight:700;color:var(--ink-lt);letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px;">
+              Replies (<span x-text="replies.length"></span>)
+            </div>
+          </div>
+        </template>
+
+        <!-- Replies -->
+        <template x-for="reply in replies" :key="reply.id">
+          <div class="reply-item">
+            <div class="post-meta">
+              <div class="post-avatar"
+                style="width:26px;height:26px;font-size:.75rem;"
+                :style="`background:${authorColor(reply.author?.full_name)}`"
+                x-text="reply.author?.full_name?.[0]?.toUpperCase() || '?'">
+              </div>
+              <span style="font-size:.82rem;font-weight:600;" x-text="reply.author?.full_name"></span>
+              <span class="mark mark-star" x-show="reply.author?.is_subscribed">⭐</span>
+              <span class="mark mark-t"    x-show="reply.author?.is_verified_teacher">🟡T</span>
+              <span class="post-time" x-text="Utils.relativeTime(reply.created_at)"></span>
+            </div>
+            <p class="reply-body" x-text="reply.body"></p>
+          </div>
+        </template>
+
+        <template x-if="openPost && replies.length === 0">
+          <p style="font-size:.85rem;color:var(--ink-lt);text-align:center;padding:16px;">No replies yet. Be the first!</p>
+        </template>
+      </div>
+
+      <!-- Reply input -->
+      <div class="reply-input-area">
+        <template x-if="isLoggedIn">
+          <textarea class="reply-input" placeholder="Write a reply…" rows="2" x-model="replyText" @keydown.enter.prevent="submitReply"></textarea>
+        </template>
+        <template x-if="!isLoggedIn">
+          <div style="flex:1;font-size:.82rem;color:var(--ink-lt);">
+            <a href="/login.html" style="color:var(--saffron);font-weight:600;">Log in</a> to reply.
+          </div>
+        </template>
+        <button class="reply-send-btn" x-show="isLoggedIn" @click="submitReply" :disabled="submittingReply">
+          <span x-show="!submittingReply">Post</span>
+          <span x-show="submittingReply">…</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Create post modal ── -->
+    <div class="modal-overlay" x-show="showCreate" @click.self="showCreate = false">
+      <div class="modal" @click.stop>
+        <h2 class="modal-title">Start a discussion</h2>
+        <div class="field">
+          <label>Title *</label>
+          <input type="text" placeholder="e.g. How do I solve simultaneous equations?" x-model="newTitle" />
+        </div>
+        <div class="field">
+          <label>Body *</label>
+          <textarea placeholder="Describe your question or topic in detail…" x-model="newBody"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="showCreate = false">Cancel</button>
+          <button class="btn-submit" @click="createPost" :disabled="creating">
+            <span x-show="!creating">Post →</span>
+            <span x-show="creating">Posting…</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — TamGam</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js" defer></script>
+  <script src="/shared/api.js"></script>
+  <script src="/shared/auth.js"></script>
+  <style>
+    :root {
+      --saffron:    #E8640C;
+      --saffron-dk: #C04F06;
+      --teal:       #0D5C63;
+      --ivory:      #FDF6EC;
+      --ivory-dk:   #F0E4CC;
+      --ink:        #1A1A2E;
+      --ink-lt:     #3D3D5C;
+      --err:        #DC2626;
+      --ok:         #059669;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: var(--ivory);
+    }
+
+    /* ── Left panel ── */
+    .left-panel {
+      background: var(--ink);
+      padding: 48px;
+      display: flex; flex-direction: column;
+      justify-content: space-between;
+      position: relative; overflow: hidden;
+    }
+    .left-panel::before {
+      content: '';
+      position: absolute; top: -100px; left: -100px;
+      width: 400px; height: 400px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(232,100,12,.2), transparent 70%);
+    }
+    .left-panel::after {
+      content: '';
+      position: absolute; bottom: -80px; right: -80px;
+      width: 300px; height: 300px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(13,92,99,.3), transparent 70%);
+    }
+
+    .left-logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; position: relative; z-index: 2;
+    }
+    .left-logo span {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.5rem; color: white;
+    }
+    .left-logo span em { color: var(--saffron); font-style: normal; }
+    .flame { font-size: 24px; animation: flicker 3s ease-in-out infinite; }
+    @keyframes flicker {
+      0%,100% { filter: drop-shadow(0 0 8px rgba(232,100,12,.5)); }
+      50%      { filter: drop-shadow(0 0 16px rgba(232,100,12,.9)); }
+    }
+
+    .left-body { position: relative; z-index: 2; }
+    .left-body h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.6rem; color: white; line-height: 1.15;
+      margin-bottom: 20px;
+    }
+    .left-body h2 em { font-style: italic; color: var(--saffron); }
+    .left-body p {
+      color: rgba(255,255,255,.65);
+      font-size: 1rem; line-height: 1.7; max-width: 360px;
+      margin-bottom: 36px;
+    }
+
+    .feature-pills { display: flex; flex-direction: column; gap: 12px; }
+    .pill {
+      display: flex; align-items: center; gap: 12px;
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 12px; padding: 14px 18px;
+      color: rgba(255,255,255,.85); font-size: 0.9rem;
+    }
+    .pill-icon { font-size: 1.2rem; }
+
+    .left-footer {
+      font-size: 0.8rem; color: rgba(255,255,255,.4);
+      position: relative; z-index: 2;
+    }
+
+    /* ── Right panel ── */
+    .right-panel {
+      display: flex; align-items: center; justify-content: center;
+      padding: 48px 5vw;
+    }
+    .form-box {
+      width: 100%; max-width: 420px;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      background: var(--ivory-dk);
+      border-radius: 12px; padding: 4px;
+      margin-bottom: 36px;
+    }
+    .tab {
+      flex: 1; text-align: center;
+      padding: 10px; border-radius: 9px;
+      font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; transition: all .2s;
+      color: var(--ink-lt);
+    }
+    .tab.active {
+      background: white; color: var(--ink);
+      box-shadow: 0 2px 8px rgba(26,26,46,.1);
+    }
+
+    /* ── Form ── */
+    .form-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem; color: var(--ink); margin-bottom: 8px;
+    }
+    .form-sub {
+      font-size: 0.9rem; color: var(--ink-lt); margin-bottom: 28px;
+    }
+
+    .field { margin-bottom: 18px; }
+    .field label {
+      display: block; font-size: 0.85rem; font-weight: 600;
+      color: var(--ink); margin-bottom: 6px;
+    }
+    .field input, .field select {
+      width: 100%; padding: 12px 14px;
+      background: white; border: 1.5px solid var(--ivory-dk);
+      border-radius: 10px; font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem; color: var(--ink);
+      outline: none; transition: border-color .2s;
+    }
+    .field input:focus, .field select:focus {
+      border-color: var(--saffron);
+      box-shadow: 0 0 0 3px rgba(232,100,12,.1);
+    }
+    .field input.err, .field select.err {
+      border-color: var(--err);
+    }
+
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .role-toggle {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    .role-btn {
+      padding: 12px; border-radius: 10px; text-align: center;
+      cursor: pointer; font-size: 0.85rem; font-weight: 600;
+      border: 1.5px solid var(--ivory-dk); background: white;
+      color: var(--ink-lt); transition: all .2s;
+    }
+    .role-btn.selected {
+      border-color: var(--saffron); background: rgba(232,100,12,.05);
+      color: var(--saffron);
+    }
+    .role-btn .role-icon { font-size: 1.4rem; display: block; margin-bottom: 4px; }
+
+    .btn-submit {
+      width: 100%; padding: 14px;
+      background: var(--saffron); color: white;
+      border: none; border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem; font-weight: 600;
+      cursor: pointer; transition: all .2s;
+      margin-top: 4px;
+    }
+    .btn-submit:hover:not(:disabled) {
+      background: var(--saffron-dk);
+      box-shadow: 0 6px 20px rgba(232,100,12,.3);
+      transform: translateY(-1px);
+    }
+    .btn-submit:disabled { opacity: .6; cursor: not-allowed; }
+
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      color: var(--ink-lt); font-size: 0.8rem; margin: 20px 0;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1;
+      border-top: 1px solid var(--ivory-dk);
+    }
+
+    .btn-google {
+      width: 100%; padding: 13px; border-radius: 10px;
+      border: 1.5px solid var(--ivory-dk); background: white;
+      cursor: pointer; font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem; font-weight: 500; color: var(--ink);
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: all .2s;
+    }
+    .btn-google:hover { border-color: #4285F4; background: #f8f9ff; }
+    .google-icon { width: 18px; height: 18px; }
+
+    .err-msg {
+      background: rgba(220,38,38,.08); border: 1px solid rgba(220,38,38,.2);
+      border-radius: 8px; padding: 10px 14px;
+      color: var(--err); font-size: 0.85rem; margin-bottom: 16px;
+    }
+    .ok-msg {
+      background: rgba(5,150,105,.08); border: 1px solid rgba(5,150,105,.2);
+      border-radius: 8px; padding: 10px 14px;
+      color: var(--ok); font-size: 0.85rem; margin-bottom: 16px;
+    }
+
+    .forgot { text-align: right; margin-top: -10px; margin-bottom: 18px; }
+    .forgot a { font-size: 0.82rem; color: var(--saffron); text-decoration: none; }
+    .forgot a:hover { text-decoration: underline; }
+
+    .switch-link {
+      text-align: center; margin-top: 24px;
+      font-size: 0.85rem; color: var(--ink-lt);
+    }
+    .switch-link a { color: var(--saffron); font-weight: 600; text-decoration: none; cursor: pointer; }
+    .switch-link a:hover { text-decoration: underline; }
+
+    /* ── Loader ── */
+    .spinner {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: white;
+      animation: spin .6s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 800px) {
+      body { grid-template-columns: 1fr; }
+      .left-panel { display: none; }
+    }
+  </style>
+</head>
+<body x-data x-init="
+  // Redirect already-logged-in users
+  Guards.redirectIfLoggedIn();
+  // Pre-select tab from URL param ?tab=signup
+  const p = new URLSearchParams(location.search);
+  if (p.get('tab') === 'signup') $dispatch('switchtab', 'signup');
+">
+
+  <!-- ── Left panel ── -->
+  <div class="left-panel">
+    <a href="/" class="left-logo">
+      <span class="flame"><img src="logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></span>
+      <span>Tam<em>Gam</em></span>
+    </a>
+
+    <div class="left-body">
+      <h2>The journey from<br><em>tamas</em> to light.</h2>
+      <p>TamGam turns live classes into a complete learning experience — AI notes, adaptive assessments, and Diya, your personal AI tutor.</p>
+
+      <div class="feature-pills">
+        <div class="pill"><span class="pill-icon">📝</span> AI notes generated from every class</div>
+        <div class="pill"><span class="pill-icon">🎯</span> Assessments that adapt to your level</div>
+        <div class="pill"><span class="pill-icon"><img src="logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></span> Diya — your always-available AI tutor</div>
+        <div class="pill"><span class="pill-icon">💬</span> Community of learners like you</div>
+      </div>
+    </div>
+
+    <div class="left-footer">© 2025 Viqri Labs · tamgam.in</div>
+  </div>
+
+  <!-- ── Right panel ── -->
+  <div class="right-panel">
+    <div class="form-box"
+      x-data="{
+        tab: 'login',
+
+        // Login form
+        loginEmail: '',
+        loginPass: '',
+
+        // Signup form
+        signupName: '',
+        signupEmail: '',
+        signupPass: '',
+        signupRole: 'student',
+
+        // Forgot password
+        forgotEmail: '',
+        showForgot: false,
+
+        loading: false,
+        errMsg: '',
+        okMsg: '',
+
+        init() {
+          // Listen for tab switch from parent
+          this.$el.addEventListener('switchtab', (e) => {
+            this.tab = e.detail;
+          });
+          // Check URL param on load
+          const p = new URLSearchParams(location.search);
+          if (p.get('tab') === 'signup') this.tab = 'signup';
+        },
+
+        setTab(t) {
+          this.tab = t;
+          this.errMsg = '';
+          this.okMsg = '';
+          this.showForgot = false;
+        },
+
+        async doLogin() {
+          this.errMsg = '';
+          if (!this.loginEmail || !this.loginPass) {
+            this.errMsg = 'Please fill in all fields.'; return;
+          }
+          this.loading = true;
+          try {
+            const data = await TG.Auth.login(this.loginEmail, this.loginPass);
+            // Route by role
+            if (data.role === 'teacher') window.location.href = '/teacher-dashboard.html';
+            else if (data.role === 'admin') window.location.href = '/admin.html';
+            else window.location.href = '/dashboard.html';
+          } catch(e) {
+            this.errMsg = e.message || 'Login failed. Check your email and password.';
+          } finally { this.loading = false; }
+        },
+
+        async doSignup() {
+          this.errMsg = '';
+          if (!this.signupName || !this.signupEmail || !this.signupPass) {
+            this.errMsg = 'Please fill in all fields.'; return;
+          }
+          if (this.signupPass.length < 8) {
+            this.errMsg = 'Password must be at least 8 characters.'; return;
+          }
+          this.loading = true;
+          try {
+            const data = await TG.Auth.signup(
+              this.signupEmail, this.signupPass,
+              this.signupName, this.signupRole
+            );
+            if (data.role === 'teacher') window.location.href = '/teacher-dashboard.html';
+            else window.location.href = '/dashboard.html';
+          } catch(e) {
+            this.errMsg = e.message || 'Signup failed. Try a different email.';
+          } finally { this.loading = false; }
+        },
+
+        async doForgot() {
+          this.errMsg = '';
+          if (!this.forgotEmail) { this.errMsg = 'Enter your email.'; return; }
+          this.loading = true;
+          try {
+            await TG.post('/auth/forgot-password', { email: this.forgotEmail });
+            this.okMsg = 'Password reset link sent! Check your inbox.';
+            this.showForgot = false;
+          } catch(e) {
+            this.errMsg = e.message || 'Something went wrong.';
+          } finally { this.loading = false; }
+        },
+
+        googleOAuth() {
+          window.location.href = (window.TAMGAM_API_BASE || 'http://localhost:8000/api/v1') + '/auth/google';
+        }
+      }"
+    >
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tab" :class="{ active: tab === 'login' }"
+          @click="setTab('login')">Log in</div>
+        <div class="tab" :class="{ active: tab === 'signup' }"
+          @click="setTab('signup')">Sign up</div>
+      </div>
+
+      <!-- Error / OK messages -->
+      <div class="err-msg" x-show="errMsg" x-text="errMsg"></div>
+      <div class="ok-msg"  x-show="okMsg"  x-text="okMsg"></div>
+
+      <!-- ── LOGIN ── -->
+      <div x-show="tab === 'login' && !showForgot">
+        <h2 class="form-title">Welcome back <img src="logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></h2>
+        <p class="form-sub">Sign in to continue your learning journey.</p>
+
+        <div class="field">
+          <label>Email address</label>
+          <input type="email" placeholder="you@example.com"
+            x-model="loginEmail"
+            @keydown.enter="doLogin" />
+        </div>
+
+        <div class="field">
+          <label>Password</label>
+          <input type="password" placeholder="••••••••"
+            x-model="loginPass"
+            @keydown.enter="doLogin" />
+        </div>
+
+        <div class="forgot">
+          <a @click.prevent="showForgot = true; errMsg = ''" href="#">Forgot password?</a>
+        </div>
+
+        <button class="btn-submit" @click="doLogin" :disabled="loading">
+          <span x-show="!loading">Log in →</span>
+          <span x-show="loading"><span class="spinner"></span></span>
+        </button>
+
+        <div class="divider">or</div>
+
+        <button class="btn-google" @click="googleOAuth">
+          <svg class="google-icon" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Continue with Google
+        </button>
+
+        <div class="switch-link">
+          New to TamGam? <a @click.prevent="setTab('signup')" href="#">Create an account</a>
+        </div>
+      </div>
+
+      <!-- ── FORGOT PASSWORD ── -->
+      <div x-show="showForgot">
+        <h2 class="form-title">Reset password</h2>
+        <p class="form-sub">Enter your email and we'll send a reset link.</p>
+
+        <div class="field">
+          <label>Email address</label>
+          <input type="email" placeholder="you@example.com"
+            x-model="forgotEmail" @keydown.enter="doForgot" />
+        </div>
+
+        <button class="btn-submit" @click="doForgot" :disabled="loading">
+          <span x-show="!loading">Send reset link</span>
+          <span x-show="loading"><span class="spinner"></span></span>
+        </button>
+
+        <div class="switch-link" style="margin-top:16px;">
+          <a @click.prevent="showForgot = false; errMsg = ''" href="#">← Back to login</a>
+        </div>
+      </div>
+
+      <!-- ── SIGNUP ── -->
+      <div x-show="tab === 'signup'">
+        <h2 class="form-title">Join TamGam <img src="logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></h2>
+        <p class="form-sub">Start your journey from darkness to light.</p>
+
+        <div class="field">
+          <label>I am a…</label>
+          <div class="role-toggle">
+            <div class="role-btn" :class="{ selected: signupRole === 'student' }"
+              @click="signupRole = 'student'">
+              <span class="role-icon">🎒</span>Student
+            </div>
+            <div class="role-btn" :class="{ selected: signupRole === 'teacher' }"
+              @click="signupRole = 'teacher'">
+              <span class="role-icon">📚</span>Teacher
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Full name</label>
+          <input type="text" placeholder="Aarav Sharma"
+            x-model="signupName" />
+        </div>
+
+        <div class="field">
+          <label>Email address</label>
+          <input type="email" placeholder="you@example.com"
+            x-model="signupEmail" />
+        </div>
+
+        <div class="field">
+          <label>Password <small style="font-weight:400;color:var(--ink-lt)">(min 8 chars)</small></label>
+          <input type="password" placeholder="••••••••"
+            x-model="signupPass" @keydown.enter="doSignup" />
+        </div>
+
+        <button class="btn-submit" @click="doSignup" :disabled="loading">
+          <span x-show="!loading">Create account →</span>
+          <span x-show="loading"><span class="spinner"></span></span>
+        </button>
+
+        <div class="divider">or</div>
+
+        <button class="btn-google" @click="googleOAuth">
+          <svg class="google-icon" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Continue with Google
+        </button>
+
+        <p style="font-size:0.75rem;color:var(--ink-lt);text-align:center;margin-top:16px;">
+          By signing up you agree to our <a href="#" style="color:var(--saffron);">Terms of Service</a> and <a href="#" style="color:var(--saffron);">Privacy Policy</a>.
+        </p>
+
+        <div class="switch-link">
+          Already have an account? <a @click.prevent="setTab('login')" href="#">Log in</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

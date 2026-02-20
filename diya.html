@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Diya — Your AI Tutor · TamGam</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js" defer></script>
+  <script src="/shared/api.js"></script>
+  <script src="/shared/auth.js"></script>
+  <style>
+    .citations { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; padding: 0 4px; }
+    .cite-label { font-size: .75rem; color: var(--ink-lt); font-weight: 600; }
+    .cite-tag { font-size: .72rem; background: var(--cream); border: 1px solid var(--ivory-dk); color: var(--ink-lt); padding: 2px 8px; border-radius: 10px; }
+    .bubble h1, .bubble h2, .bubble h3 { font-size: 1rem; font-weight: 700; margin: 10px 0 4px; }
+    .bubble p { margin: 4px 0; }
+    .bubble ul, .bubble ol { margin: 4px 0 4px 18px; }
+    .bubble strong { font-weight: 700; }
+    .bubble code { background: rgba(0,0,0,.06); padding: 1px 5px; border-radius: 4px; font-size: .85em; }
+    .bubble pre { background: rgba(0,0,0,.05); padding: 10px; border-radius: 8px; overflow-x: auto; margin: 8px 0; }
+    .bubble pre code { background: none; padding: 0; }
+    :root {
+      --saffron:#E8640C; --saffron-lt:#F5914A; --saffron-dk:#C04F06;
+      --teal:#0D5C63; --teal-lt:#1A8A94;
+      --ivory:#FDF6EC; --ivory-dk:#F0E4CC;
+      --ink:#1A1A2E; --ink-lt:#3D3D5C;
+      --gold:#D4A017; --cream:#FEFBF4;
+      --diya-bubble: #FFF8F0;
+      --user-bubble: #EFF9FA;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--cream);
+      color: var(--ink);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Left nav (compact) ── */
+    .leftnav {
+      width: 64px; flex-shrink: 0;
+      background: var(--ink);
+      display: flex; flex-direction: column; align-items: center;
+      padding: 20px 0; gap: 4px;
+    }
+    .leftnav-logo {
+      font-size: 22px; margin-bottom: 16px;
+      animation: flicker 3s ease-in-out infinite;
+    }
+    @keyframes flicker {
+      0%,100%{ filter:drop-shadow(0 0 8px rgba(232,100,12,.5)); }
+      50%    { filter:drop-shadow(0 0 14px rgba(232,100,12,.9)); }
+    }
+    .leftnav-item {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; cursor: pointer; transition: background .2s;
+      text-decoration: none; color: rgba(255,255,255,.6);
+    }
+    .leftnav-item:hover { background: rgba(255,255,255,.1); color: white; }
+    .leftnav-item.active { background: var(--saffron); color: white; }
+    .leftnav-bottom { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .leftnav-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--teal);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: .9rem; color: white; cursor: pointer;
+    }
+
+    /* ── Sessions sidebar ── */
+    .sessions-sidebar {
+      width: 260px; flex-shrink: 0;
+      background: white; border-right: 1px solid var(--ivory-dk);
+      display: flex; flex-direction: column;
+      height: 100vh; overflow: hidden;
+    }
+    .sessions-header {
+      padding: 20px 20px 0;
+      border-bottom: 1px solid var(--ivory-dk);
+      padding-bottom: 16px;
+    }
+    .sessions-header h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem; color: var(--ink); margin-bottom: 12px;
+    }
+    .btn-new-chat {
+      width: 100%; padding: 10px;
+      background: var(--saffron); color: white;
+      border: none; border-radius: 9px;
+      font-family: 'DM Sans', sans-serif; font-size: .85rem; font-weight: 600;
+      cursor: pointer; transition: background .2s;
+    }
+    .btn-new-chat:hover { background: var(--saffron-dk); }
+
+    .sessions-list { flex: 1; overflow-y: auto; padding: 8px 12px; }
+    .session-item {
+      padding: 10px 12px; border-radius: 10px;
+      cursor: pointer; transition: background .15s;
+      margin-bottom: 2px;
+    }
+    .session-item:hover   { background: var(--ivory); }
+    .session-item.active  { background: rgba(232,100,12,.08); }
+    .session-title { font-size: .85rem; font-weight: 600; color: var(--ink); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .session-meta  { font-size: .75rem; color: var(--ink-lt); }
+
+    /* ── Chat main ── */
+    .chat-main {
+      flex: 1; display: flex; flex-direction: column;
+      height: 100vh; overflow: hidden;
+    }
+
+    /* Chat header */
+    .chat-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--ivory-dk);
+      display: flex; align-items: center; gap: 16px;
+      background: white;
+    }
+    .diya-avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--saffron), var(--gold));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+      box-shadow: 0 0 0 3px rgba(232,100,12,.15);
+    }
+    .chat-header-info h4 { font-size: .95rem; font-weight: 700; color: var(--ink); }
+    .chat-header-info p  { font-size: .78rem; color: var(--ink-lt); }
+    .level-badge {
+      margin-left: auto; background: rgba(13,92,99,.1);
+      color: var(--teal); font-size: .75rem; font-weight: 700;
+      padding: 4px 10px; border-radius: 6px;
+    }
+    .class-selector { margin-left: 12px; }
+    .class-selector select {
+      padding: 6px 10px; border: 1.5px solid var(--ivory-dk);
+      border-radius: 8px; background: var(--ivory);
+      font-family: 'DM Sans', sans-serif; font-size: .8rem;
+      color: var(--ink); outline: none; cursor: pointer;
+    }
+
+    /* Messages area */
+    .messages {
+      flex: 1; overflow-y: auto;
+      padding: 28px 40px;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+    .messages::-webkit-scrollbar { width: 4px; }
+    .messages::-webkit-scrollbar-thumb { background: var(--ivory-dk); border-radius: 2px; }
+
+    /* Message bubble */
+    .msg { display: flex; gap: 12px; max-width: 720px; }
+    .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+    .msg.diya  { align-self: flex-start; }
+
+    .msg-avatar {
+      width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; margin-top: 2px;
+    }
+    .msg.diya  .msg-avatar { background: linear-gradient(135deg,var(--saffron),var(--gold)); }
+    .msg.user  .msg-avatar { background: var(--teal); color: white; font-size: .85rem; font-weight: 700; }
+
+    .bubble {
+      padding: 13px 17px; border-radius: 16px;
+      font-size: .92rem; line-height: 1.65;
+      max-width: 580px;
+    }
+    .msg.diya .bubble {
+      background: var(--diya-bubble);
+      border: 1px solid var(--ivory-dk);
+      border-bottom-left-radius: 4px;
+      color: var(--ink);
+    }
+    .msg.user .bubble {
+      background: var(--teal);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+    .msg-time { font-size: .7rem; color: var(--ink-lt); margin-top: 4px; }
+    .msg.user .msg-time { text-align: right; }
+
+    /* Typing indicator */
+    .typing { display: flex; gap: 4px; padding: 14px 17px; }
+    .typing span {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--saffron); opacity: .6;
+      animation: bounce .9s ease-in-out infinite;
+    }
+    .typing span:nth-child(2) { animation-delay: .15s; }
+    .typing span:nth-child(3) { animation-delay: .3s; }
+    @keyframes bounce {
+      0%,80%,100% { transform: translateY(0); }
+      40%          { transform: translateY(-6px); }
+    }
+
+    /* Welcome state */
+    .welcome-state {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 40px;
+    }
+    .welcome-flame { font-size: 3.5rem; margin-bottom: 16px; animation: flicker 3s ease-in-out infinite; }
+    .welcome-state h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem; color: var(--ink); margin-bottom: 8px;
+    }
+    .welcome-state h2 em { font-style: italic; color: var(--saffron); }
+    .welcome-state p { color: var(--ink-lt); font-size: .95rem; max-width: 380px; line-height: 1.7; }
+    .suggestion-chips {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      justify-content: center; margin-top: 24px; max-width: 500px;
+    }
+    .chip {
+      background: white; border: 1.5px solid var(--ivory-dk);
+      border-radius: 20px; padding: 8px 16px;
+      font-size: .85rem; cursor: pointer;
+      transition: all .2s; color: var(--ink);
+    }
+    .chip:hover { border-color: var(--saffron); color: var(--saffron); background: rgba(232,100,12,.04); }
+
+    /* Input area */
+    .input-area {
+      padding: 16px 24px 20px;
+      background: white; border-top: 1px solid var(--ivory-dk);
+    }
+    .input-box {
+      display: flex; gap: 10px; align-items: flex-end;
+      background: var(--ivory); border: 1.5px solid var(--ivory-dk);
+      border-radius: 14px; padding: 10px 12px;
+      transition: border-color .2s;
+    }
+    .input-box:focus-within { border-color: var(--saffron); box-shadow: 0 0 0 3px rgba(232,100,12,.1); }
+    .input-box textarea {
+      flex: 1; resize: none; background: none; border: none; outline: none;
+      font-family: 'DM Sans', sans-serif; font-size: .95rem; color: var(--ink);
+      line-height: 1.5; max-height: 120px; min-height: 24px;
+    }
+    .send-btn {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: var(--saffron); color: white;
+      border: none; cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      font-size: 1rem; flex-shrink: 0;
+      transition: all .2s; align-self: flex-end;
+    }
+    .send-btn:hover:not(:disabled) { background: var(--saffron-dk); transform: translateY(-1px); }
+    .send-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .input-hint { font-size: .74rem; color: var(--ink-lt); margin-top: 8px; text-align: center; }
+
+    /* Subscription gate overlay */
+    .gate-overlay {
+      position: absolute; inset: 0;
+      background: rgba(253,246,236,.92);
+      backdrop-filter: blur(4px);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 40px;
+      z-index: 10;
+    }
+    .gate-icon { font-size: 3rem; margin-bottom: 16px; }
+    .gate-overlay h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem; color: var(--ink); margin-bottom: 10px;
+    }
+    .gate-overlay p { color: var(--ink-lt); max-width: 360px; line-height: 1.7; margin-bottom: 24px; }
+    .btn-gate {
+      background: var(--saffron); color: white;
+      padding: 12px 28px; border-radius: 10px;
+      font-weight: 700; font-size: .95rem;
+      text-decoration: none; transition: all .2s;
+      border: none; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    }
+    .btn-gate:hover { background: var(--saffron-dk); transform: translateY(-1px); }
+
+    .spinner { width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:white;animation:spin .6s linear infinite;display:inline-block; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    @media (max-width: 768px) {
+      .sessions-sidebar { display: none; }
+      .leftnav { display: none; }
+      .messages { padding: 20px 16px; }
+    }
+  </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+</head>
+<body x-data x-init="Guards.requireLogin()">
+
+  <!-- ── Left nav ── -->
+  <nav class="leftnav">
+    <a href="/" class="leftnav-logo" title="TamGam"><img src="logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></a>
+    <a href="/dashboard.html" class="leftnav-item" title="Dashboard">🏠</a>
+    <a href="/diya.html" class="leftnav-item active" title="Ask Diya"><img src="logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></a>
+    <a href="/community.html" class="leftnav-item" title="Community">💬</a>
+    <div class="leftnav-bottom" x-data>
+      <div class="leftnav-avatar" x-text="$store.auth.firstName[0]?.toUpperCase()"
+        title="Profile"></div>
+      <a class="leftnav-item" @click="$store.auth.logout()" title="Log out" style="font-size:.85rem;">↗</a>
+    </div>
+  </nav>
+
+  <!-- ── Sessions sidebar ── -->
+  <aside class="sessions-sidebar"
+    x-data="{
+      sessions: [],
+      loading: true,
+      async init() {
+        try {
+          const d = await TG.Tutor.getSessions();
+          this.sessions = Array.isArray(d) ? d : d?.items || [];
+        } catch {}
+        this.loading = false;
+      }
+    }"
+  >
+    <div class="sessions-header">
+      <h3>Conversations</h3>
+      <button class="btn-new-chat" @click="$dispatch('newchat')">+ New conversation</button>
+    </div>
+    <div class="sessions-list">
+      <template x-if="loading">
+        <div style="padding:12px;">
+          <template x-for="i in 4">
+            <div style="height:52px;background:linear-gradient(90deg,var(--ivory-dk) 25%,var(--ivory) 50%,var(--ivory-dk) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:8px;margin-bottom:6px;"></div>
+          </template>
+        </div>
+      </template>
+      <template x-if="!loading && sessions.length === 0">
+        <p style="font-size:.82rem;color:var(--ink-lt);text-align:center;padding:20px 12px;line-height:1.6;">
+          No conversations yet.<br>Ask Diya your first question!
+        </p>
+      </template>
+      <template x-for="s in sessions" :key="s.id">
+        <div class="session-item" @click="$dispatch('loadsession', s.id)">
+          <div class="session-title" x-text="'Session — ' + Utils.formatDate(s.created_at)"></div>
+          <div class="session-meta" x-text="s.message_count + ' messages · ' + Utils.relativeTime(s.last_message_at)"></div>
+        </div>
+      </template>
+    </div>
+  </aside>
+
+  <!-- ── Chat main ── -->
+  <div class="chat-main"
+    x-data="{
+      messages: [],
+      sessionId: null,
+      classes: [],
+      selectedClassId: null,
+      question: '',
+      sending: false,
+      isTyping: false,
+      isSubscribed: TG.TokenStore.getUser()?.is_subscribed,
+
+      renderMarkdown(text) {
+          if (!text) return '';
+          // Replace \( \) and \[ \] with $ and $$ for KaTeX
+          let html = marked.parse(text, { breaks: true });
+          // Render inline math: $...$
+          html = html.replace(/\$([^$]+)\$/g, (_, math) => {
+              try { return katex.renderToString(math, { throwOnError: false }); }
+              catch(e) { return math; }
+          });
+          return html;
+      },
+      async init() {
+        Guards.requireLogin();
+        // Load available classes for context selector
+        try {
+          const c = await TG.Classes.list({ limit: 20 });
+          this.classes = Array.isArray(c) ? c : c?.items || [];
+        } catch {}
+
+        // Listen for new chat button
+        window.addEventListener('newchat', () => {
+          this.messages = [];
+          this.sessionId = null;
+        });
+
+        // Listen for load session
+        window.addEventListener('loadsession', async (e) => {
+          const id = e.detail;
+          try {
+            const s = await TG.Tutor.getSession(id);
+            this.sessionId = id;
+            this.messages = (s.messages || []).map(m => ({
+              role: m.role,
+              content: m.content,
+              time: m.timestamp,
+            }));
+            this.$nextTick(() => this.scrollToBottom());
+          } catch {}
+        });
+      },
+
+      async send() {
+        if (!this.question.trim() || this.sending) return;
+        if (!this.isSubscribed) return;
+
+        const q = this.question.trim();
+        this.question = '';
+        this.messages.push({ role: 'user', content: q, time: new Date().toISOString() });
+        this.$nextTick(() => this.scrollToBottom());
+
+        this.sending = true;
+        this.isTyping = true;
+
+        try {
+          const res = await TG.Tutor.ask(q, this.sessionId, this.selectedClassId);
+          this.sessionId = res.session_id;
+          this.isTyping = false;
+          this.messages.push({ role: 'assistant', content: res.answer, time: new Date().toISOString(), sources: res.sources || [] });
+        } catch(e) {
+          this.isTyping = false;
+          this.messages.push({
+            role: 'assistant',
+            content: 'I ran into a problem answering that. Please try again. 🙏',
+            time: new Date().toISOString(),
+          });
+        } finally {
+          this.sending = false;
+          this.$nextTick(() => this.scrollToBottom());
+        }
+      },
+
+      useChip(text) {
+        this.question = text;
+        this.send();
+      },
+
+      scrollToBottom() {
+        const el = this.$refs.msgs;
+        if (el) el.scrollTop = el.scrollHeight;
+      },
+
+      handleEnter(e) {
+        if (e.shiftKey) return; // allow newline
+        e.preventDefault();
+        this.send();
+      },
+
+      get userInitial() {
+        return TG.TokenStore.getUser()?.full_name?.[0]?.toUpperCase() || 'U';
+      }
+    }"
+  >
+
+    <!-- Header -->
+    <div class="chat-header">
+      <div class="diya-avatar"><img src="logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></div>
+      <div class="chat-header-info">
+        <h4>Diya</h4>
+        <p>Your personal AI tutor · Answers from your class content</p>
+      </div>
+      <div class="class-selector" x-show="classes.length > 0">
+        <select x-model="selectedClassId">
+          <option value="">All classes</option>
+          <template x-for="cls in classes" :key="cls.id">
+            <option :value="cls.id" x-text="cls.title"></option>
+          </template>
+        </select>
+      </div>
+      <div class="level-badge" x-data>
+        Level <span x-text="$store.auth.user?.understanding_level || '?'"></span> / 5
+      </div>
+    </div>
+
+    <!-- Subscription gate -->
+    <template x-if="!isSubscribed">
+      <div style="position:relative;flex:1;display:flex;">
+        <div class="gate-overlay">
+          <div class="gate-icon"><img src="logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></div>
+          <h3>Diya is waiting for you</h3>
+          <p>Subscribe to unlock unlimited access to Diya — your AI tutor who answers questions from your exact class content, at your understanding level.</p>
+          <a href="#" class="btn-gate">Subscribe for ₹299/month →</a>
+        </div>
+      </div>
+    </template>
+
+    <!-- Chat area (subscribed) -->
+    <template x-if="isSubscribed">
+      <div style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+
+        <!-- Welcome / messages -->
+        <template x-if="messages.length === 0">
+          <div class="welcome-state">
+            <div class="welcome-flame"><img src="logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></div>
+            <h2>Namaste! I'm <em>Diya</em></h2>
+            <p>I'm your personal AI tutor. Ask me anything from your Maths or Science classes — I'll answer based on what your teacher taught you.</p>
+            <div class="suggestion-chips">
+              <div class="chip" @click="useChip('Can you explain what a variable means in algebra?')">
+                What is a variable in algebra?
+              </div>
+              <div class="chip" @click="useChip('How does photosynthesis work? Explain simply.')">
+                Explain photosynthesis simply
+              </div>
+              <div class="chip" @click="useChip('What is Newton\'s second law of motion?')">
+                Newton's second law?
+              </div>
+              <div class="chip" @click="useChip('Summarise what we covered in the last class.')">
+                What did we cover last class?
+              </div>
+              <div class="chip" @click="useChip('Can you give me 3 practice questions on fractions?')">
+                Practice questions on fractions
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <template x-if="messages.length > 0">
+          <div class="messages" x-ref="msgs">
+            <template x-for="(msg, i) in messages" :key="i">
+              <div class="msg" :class="msg.role === 'user' ? 'user' : 'diya'">
+                <div class="msg-avatar" x-text="msg.role === 'user' ? userInitial : '<img src="logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam">'"></div>
+                <div>
+                  <div>
+                    <div class="bubble" x-html="msg.role === 'user' ? msg.content : renderMarkdown(msg.content)"></div>
+                      <template x-if="msg.sources && msg.sources.length > 0">
+                        <div class="citations">
+                          <span class="cite-label">📚 Sources:</span>
+                          <template x-for="src in msg.sources" :key="src.label">
+                            <span class="cite-tag" x-text="src.label"></span>
+                          </template>
+                        </div>
+                      </template>
+                    </div>
+                  <div class="msg-time" x-text="Utils.formatTime(msg.time)"></div>
+                </div>
+              </div>
+            </template>
+
+            <!-- Typing indicator -->
+            <template x-if="isTyping">
+              <div class="msg diya">
+                <div class="msg-avatar"><img src="logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></div>
+                <div class="bubble" style="padding:8px 14px;">
+                  <div class="typing">
+                    <span></span><span></span><span></span>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+
+        <!-- Input -->
+        <div class="input-area">
+          <div class="input-box">
+            <textarea
+              placeholder="Ask Diya anything about your classes…"
+              x-model="question"
+              @keydown.enter="handleEnter($event)"
+              rows="1"
+              @input="$el.style.height='auto';$el.style.height=$el.scrollHeight+'px'"
+            ></textarea>
+            <button class="send-btn" @click="send" :disabled="sending || !question.trim()">
+              <span x-show="!sending">↑</span>
+              <span x-show="sending" class="spinner"></span>
+            </button>
+          </div>
+          <p class="input-hint">Diya answers only from your class content · Press Enter to send, Shift+Enter for new line</p>
+        </div>
+
+      </div>
+    </template>
+
+  </div>
+
+</body>
+</html>

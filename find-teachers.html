@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Find a Teacher – TamGam</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display@0;1&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js" defer></script>
+  <script src="/shared/api.js"></script>
+  <script src="/shared/auth.js"></script>
+  <style>
+    :root {
+      --saffron:#E8640C; --saffron-lt:#F5914A; --saffron-dk:#C04F06;
+      --teal:#0D5C63; --teal-lt:#1A8A94;
+      --ivory:#FDF6EC; --ivory-dk:#F0E4CC;
+      --ink:#1A1A2E; --ink-lt:#3D3D5C;
+      --gold:#D4A017; --cream:#FEFBF4;
+      --sidebar-w: 240px;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'DM Sans',sans-serif; background:var(--cream); color:var(--ink); display:flex; min-height:100vh; }
+    [x-cloak] { display:none !important; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w); flex-shrink: 0;
+      background: var(--ink); min-height: 100vh;
+      padding: 28px 0; display: flex; flex-direction: column;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    .sidebar-logo {
+      padding: 0 24px 28px;
+      display: flex; align-items: center; gap: 8px;
+      text-decoration: none; border-bottom: 1px solid rgba(255,255,255,.08);
+      margin-bottom: 20px;
+    }
+    .flame { font-size: 22px; animation: flicker 3s ease-in-out infinite; }
+    @keyframes flicker {
+      0%,100%{ filter:drop-shadow(0 0 8px rgba(232,100,12,.5)); }
+      50%    { filter:drop-shadow(0 0 14px rgba(232,100,12,.9)); }
+    }
+    .sidebar-brand { font-family:'DM Serif Display',serif; font-size:1.3rem; color:white; }
+    .sidebar-brand em { color:var(--saffron); font-style:normal; }
+    .nav-section { padding: 0 16px; margin-bottom: 4px; }
+    .nav-label { font-size:0.7rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.3); padding:8px 8px 6px; }
+    .nav-item {
+      display:flex; align-items:center; gap:10px;
+      padding:10px 12px; border-radius:10px;
+      color:rgba(255,255,255,.65); font-size:0.9rem; font-weight:500;
+      cursor:pointer; transition:all .2s; text-decoration:none; margin-bottom:2px;
+    }
+    .nav-item:hover  { background:rgba(255,255,255,.08); color:white; }
+    .nav-item.active { background:var(--saffron); color:white; }
+    .nav-icon { font-size:1.05rem; width:20px; text-align:center; }
+    .sidebar-footer { margin-top:auto; padding:16px; border-top:1px solid rgba(255,255,255,.08); }
+    .user-chip { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; background:rgba(255,255,255,.07); }
+    .user-avatar { width:36px; height:36px; border-radius:50%; background:var(--saffron); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.9rem; color:white; flex-shrink:0; }
+    .user-info { overflow:hidden; }
+    .user-name  { font-size:0.85rem; font-weight:600; color:white; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .user-role  { font-size:0.75rem; color:rgba(255,255,255,.5); }
+    .logout-btn { margin-left:auto; background:none; border:none; color:rgba(255,255,255,.4); font-size:1rem; cursor:pointer; padding:4px; transition:color .2s; }
+    .logout-btn:hover { color:white; }
+
+    /* ── Main ── */
+    .main { flex:1; padding:36px 40px; min-height:100vh; overflow-y:auto; }
+    .page-header { margin-bottom:32px; }
+    .page-title { font-family:'DM Serif Display',serif; font-size:1.9rem; color:var(--ink); margin-bottom:6px; }
+    .page-subtitle { font-size:0.9rem; color:var(--ink-lt); }
+
+    /* ── Filter Bar ── */
+    .filter-bar {
+      display:flex; gap:12px; flex-wrap:wrap;
+      background:white; border-radius:16px;
+      padding:20px 24px; margin-bottom:28px;
+      box-shadow:0 2px 12px rgba(0,0,0,.06);
+    }
+    .filter-group { display:flex; flex-direction:column; gap:6px; flex:1; min-width:140px; }
+    .filter-label { font-size:0.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-lt); }
+    .filter-input, .filter-select {
+      padding:9px 14px; border:1.5px solid var(--ivory-dk);
+      border-radius:10px; font-family:inherit; font-size:0.88rem;
+      background:var(--cream); color:var(--ink);
+      transition:border-color .2s; outline:none;
+    }
+    .filter-input:focus, .filter-select:focus { border-color:var(--saffron); }
+    .filter-btn {
+      align-self:flex-end; padding:10px 22px;
+      background:var(--saffron); color:white;
+      border:none; border-radius:10px;
+      font-family:inherit; font-size:0.88rem; font-weight:600;
+      cursor:pointer; transition:background .2s, transform .15s; white-space:nowrap;
+    }
+    .filter-btn:hover { background:var(--saffron-dk); transform:translateY(-1px); }
+
+    /* ── Grid ── */
+    .teachers-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:20px; }
+
+    /* ── Teacher Card ── */
+    .teacher-card {
+      background:white; border-radius:16px; padding:24px;
+      box-shadow:0 2px 12px rgba(0,0,0,.06);
+      transition:transform .2s, box-shadow .2s;
+      border:1.5px solid transparent;
+      display:flex; flex-direction:column;
+    }
+    .teacher-card:hover { transform:translateY(-3px); box-shadow:0 8px 28px rgba(0,0,0,.11); border-color:var(--ivory-dk); }
+    .teacher-card-header { display:flex; gap:14px; align-items:flex-start; margin-bottom:14px; }
+    .teacher-avatar-wrap {
+      width:52px; height:52px; border-radius:50%; flex-shrink:0;
+      background:linear-gradient(135deg, var(--saffron), var(--teal));
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.3rem; font-weight:700; color:white; overflow:hidden;
+    }
+    .teacher-avatar-wrap img { width:100%; height:100%; object-fit:cover; }
+    .teacher-info { flex:1; min-width:0; }
+    .teacher-name { font-size:1rem; font-weight:600; color:var(--ink); display:flex; align-items:center; gap:6px; margin-bottom:3px; flex-wrap:wrap; }
+    .verified-badge { background:var(--gold); color:white; font-size:0.65rem; font-weight:700; padding:2px 7px; border-radius:5px; letter-spacing:.04em; }
+    .teacher-school { font-size:0.8rem; color:var(--ink-lt); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .teacher-subjects { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+    .subject-tag { padding:4px 10px; border-radius:20px; font-size:0.75rem; font-weight:500; background:var(--ivory); color:var(--ink-lt); }
+    .teacher-stats { display:flex; gap:16px; margin-bottom:14px; padding:12px 0; border-top:1px solid var(--ivory-dk); border-bottom:1px solid var(--ivory-dk); }
+    .stat-item { text-align:center; flex:1; }
+    .stat-value { font-size:1.05rem; font-weight:700; color:var(--ink); }
+    .stat-label { font-size:0.7rem; color:var(--ink-lt); margin-top:2px; }
+    .teacher-bio { font-size:0.82rem; color:var(--ink-lt); line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:16px; }
+    .request-btn {
+      display:block; width:100%; padding:11px; border:none; border-radius:10px;
+      font-family:inherit; font-size:0.88rem; font-weight:600; cursor:pointer;
+      transition:background .2s, transform .15s;
+      background:var(--saffron); color:white;
+      margin-top:auto; padding-top:12px; line-height:1.4;
+      flex-shrink:0;
+    }
+    .request-btn:hover:not(:disabled) { background:var(--saffron-dk); transform:translateY(-1px); }
+    .request-btn:disabled { background:var(--ivory-dk); color:var(--ink-lt); cursor:not-allowed; transform:none; }
+    .request-btn.sent { background:#e8f5e9; color:#2e7d32; cursor:default; }
+
+    /* ── Empty / Skeleton ── */
+    .empty-state { text-align:center; padding:60px 20px; color:var(--ink-lt); }
+    .empty-icon { font-size:3rem; margin-bottom:16px; }
+    .empty-title { font-size:1.1rem; font-weight:600; margin-bottom:8px; color:var(--ink); }
+    .skeleton { background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:8px; }
+    @keyframes shimmer { to { background-position:-200% 0; } }
+    .skel-card { background:white; border-radius:16px; padding:24px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+
+    /* ── Modal ── */
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px; animation:fadeIn .2s; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    .modal { background:white; border-radius:20px; padding:32px; width:100%; max-width:460px; box-shadow:0 20px 60px rgba(0,0,0,.2); animation:slideUp .25s; }
+    @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+    .modal-title { font-family:'DM Serif Display',serif; font-size:1.4rem; margin-bottom:6px; }
+    .modal-subtitle { font-size:0.85rem; color:var(--ink-lt); margin-bottom:24px; }
+    .modal-field { margin-bottom:18px; }
+    .modal-label { font-size:0.78rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-lt); margin-bottom:8px; display:block; }
+    .modal-select, .modal-textarea { width:100%; padding:11px 14px; border:1.5px solid var(--ivory-dk); border-radius:10px; font-family:inherit; font-size:0.88rem; background:var(--cream); color:var(--ink); outline:none; transition:border-color .2s; }
+    .modal-select:focus, .modal-textarea:focus { border-color:var(--saffron); }
+    .modal-textarea { resize:vertical; min-height:90px; }
+    .modal-error { color:#c62828; font-size:0.82rem; margin-bottom:8px; }
+    .modal-actions { display:flex; gap:10px; margin-top:24px; }
+    .btn-cancel { flex:1; padding:12px; background:var(--ivory); color:var(--ink-lt); border:none; border-radius:10px; font-family:inherit; font-size:0.88rem; font-weight:600; cursor:pointer; }
+    .btn-cancel:hover { background:var(--ivory-dk); }
+    .btn-submit { flex:2; padding:12px; background:var(--saffron); color:white; border:none; border-radius:10px; font-family:inherit; font-size:0.88rem; font-weight:600; cursor:pointer; }
+    .btn-submit:hover:not(:disabled) { background:var(--saffron-dk); }
+    .btn-submit:disabled { background:var(--ivory-dk); color:var(--ink-lt); cursor:not-allowed; }
+
+    /* ── Toast ── */
+    .toast { position:fixed; bottom:28px; right:28px; padding:14px 22px; border-radius:12px; font-size:0.88rem; font-weight:500; color:white; box-shadow:0 8px 24px rgba(0,0,0,.18); z-index:200; animation:slideUp .3s; }
+    .toast.success { background:#2e7d32; }
+    .toast.error   { background:#c62828; }
+  </style>
+</head>
+<body x-data="findTeachers()" x-init="init()">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <a href="/dashboard.html" class="sidebar-logo">
+      <span class="flame"><img src="logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></span>
+      <span class="sidebar-brand">Tam<em>Gam</em></span>
+    </a>
+    <div class="nav-section">
+      <div class="nav-label">Learn</div>
+      <a href="/dashboard.html" class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="/find-teachers.html" class="nav-item active"><span class="nav-icon">🔍</span> Find a Teacher</a>
+      <a href="/community.html" class="nav-item"><span class="nav-icon">💬</span> Community</a>
+      <a href="/diya.html" class="nav-item"><span class="nav-icon">🦊</span> Ask Diya</a>
+    </div>
+    <div class="nav-section" style="margin-top:8px;">
+      <div class="nav-label">Account</div>
+      <a href="#" class="nav-item"><span class="nav-icon">👤</span> Profile</a>
+      <a href="/plans.html" class="nav-item"><span class="nav-icon">⭐</span> Subscription</a>
+      <a href="#" class="nav-item"><span class="nav-icon">🔔</span> Notifications</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" x-data x-text="($store.auth?.user?.full_name || 'S')[0].toUpperCase()"></div>
+        <div class="user-info">
+          <div class="user-name" x-data x-text="$store.auth?.user?.full_name || '—'"></div>
+          <div class="user-role">Student <span style="color:var(--saffron);">⭐</span></div>
+        </div>
+        <button class="logout-btn" x-data @click="$store.auth.logout()" title="Log out">↗</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="main">
+    <div class="page-header">
+      <h1 class="page-title">🔍 Find a Teacher</h1>
+      <p class="page-subtitle">Browse verified teachers and send a tuition request</p>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="filter-group" style="flex:2;min-width:180px;">
+        <label class="filter-label">Subject</label>
+        <input class="filter-input" type="text" placeholder="e.g. Mathematics, Science…"
+          x-model="filters.subject" @keydown.enter="search()" />
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Min Experience</label>
+        <select class="filter-select" x-model="filters.min_exp">
+          <option value="">Any</option>
+          <option value="1">1+ years</option>
+          <option value="3">3+ years</option>
+          <option value="5">5+ years</option>
+          <option value="10">10+ years</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Verified only</label>
+        <select class="filter-select" x-model="filters.verified_only">
+          <option value="true">Yes</option>
+          <option value="false">All teachers</option>
+        </select>
+      </div>
+      <button class="filter-btn" @click="search()">Search</button>
+    </div>
+
+    <!-- Loading skeletons -->
+    <template x-if="loading">
+      <div class="teachers-grid">
+        <template x-for="i in 6">
+          <div class="skel-card">
+            <div style="display:flex;gap:14px;margin-bottom:16px;">
+              <div class="skeleton" style="width:52px;height:52px;border-radius:50%;flex-shrink:0;"></div>
+              <div style="flex:1;">
+                <div class="skeleton" style="height:14px;width:60%;margin-bottom:8px;"></div>
+                <div class="skeleton" style="height:11px;width:80%;"></div>
+              </div>
+            </div>
+            <div class="skeleton" style="height:10px;width:50%;margin-bottom:14px;"></div>
+            <div class="skeleton" style="height:40px;margin-bottom:14px;border-radius:10px;"></div>
+            <div class="skeleton" style="height:11px;margin-bottom:6px;"></div>
+            <div class="skeleton" style="height:11px;width:70%;margin-bottom:20px;"></div>
+            <div class="skeleton" style="height:40px;border-radius:10px;"></div>
+          </div>
+        </template>
+      </div>
+    </template>
+
+    <!-- Empty state -->
+    <template x-if="!loading && teachers.length === 0">
+      <div class="empty-state">
+        <div class="empty-icon">🎓</div>
+        <div class="empty-title">No teachers found</div>
+        <p>Try changing your filters or searching a different subject</p>
+      </div>
+    </template>
+
+    <!-- Teachers grid -->
+    <template x-if="!loading && teachers.length > 0">
+      <div class="teachers-grid">
+        <template x-for="t in teachers" :key="t.id">
+          <div class="teacher-card">
+            <div class="teacher-card-header">
+              <div class="teacher-avatar-wrap">
+                <template x-if="t.avatar_url">
+                  <img :src="t.avatar_url" :alt="t.full_name" />
+                </template>
+                <template x-if="!t.avatar_url">
+                  <span x-text="(t.full_name || '?')[0].toUpperCase()"></span>
+                </template>
+              </div>
+              <div class="teacher-info">
+                <div class="teacher-name">
+                  <span x-text="t.full_name"></span>
+                  <span class="verified-badge" x-show="t.is_verified">✓ Verified</span>
+                </div>
+                <div class="teacher-school" x-text="t.school_or_institution || 'Independent teacher'"></div>
+              </div>
+            </div>
+
+            <div class="teacher-subjects">
+              <template x-for="subj in (t.subjects || []).slice(0,4)" :key="subj">
+                <span class="subject-tag" x-text="subj"></span>
+              </template>
+            </div>
+
+            <div class="teacher-stats">
+              <div class="stat-item">
+                <div class="stat-value" x-text="t.experience_years ?? '—'"></div>
+                <div class="stat-label">Yrs exp.</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value" x-text="t.total_students ?? 0"></div>
+                <div class="stat-label">Students</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value" x-text="t.average_rating ? t.average_rating.toFixed(1) + ' ★' : '—'"></div>
+                <div class="stat-label">Rating</div>
+              </div>
+            </div>
+
+            <p class="teacher-bio" x-text="t.bio || 'No bio available.'"></p>
+
+            <button class="request-btn"
+              :class="{ 'sent': sentTeacherIds[t.id] }"
+              :disabled="sentTeacherIds[t.id]"
+              @click="openModal(t)">
+              📩 Request Tuition
+            </button>
+          </div>
+        </template>
+      </div>
+    </template>
+  </main>
+
+  <!-- ── Request Modal ── -->
+  <div class="modal-overlay" x-show="modal.open" x-cloak @click.self="modal.open = false">
+    <div class="modal" @click.stop>
+      <div class="modal-title">Request Tuition</div>
+      <p class="modal-subtitle" x-text="'Sending request to ' + (modal.teacher?.full_name || '')"></p>
+
+      <div class="modal-field">
+        <label class="modal-label">Subject *</label>
+        <select class="modal-select" x-model="modal.subject">
+          <option value="">Select a subject…</option>
+          <template x-for="subj in (modal.teacher?.subjects || [])" :key="subj">
+            <option :value="subj" x-text="subj"></option>
+          </template>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="modal-field">
+        <label class="modal-label">Message (optional)</label>
+        <textarea class="modal-textarea" x-model="modal.message"
+          placeholder="Introduce yourself — your grade, what you need help with, your goals…"
+          maxlength="500"></textarea>
+      </div>
+
+      <p class="modal-error" x-show="modal.error" x-text="modal.error"></p>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" @click="modal.open = false">Cancel</button>
+        <button class="btn-submit"
+          :disabled="!modal.subject || modal.submitting"
+          @click="submitRequest()">
+          <span x-show="!modal.submitting">Send Request</span>
+          <span x-show="modal.submitting">Sending…</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Toast ── -->
+  <div class="toast success" x-show="toast.show && toast.type==='success'" x-text="toast.msg" x-cloak></div>
+  <div class="toast error"   x-show="toast.show && toast.type==='error'"   x-text="toast.msg" x-cloak></div>
+
+  <script>
+    function findTeachers() {
+      return {
+        loading: true,
+        teachers: [],
+        sentTeacherIds: {},  // plain object for Alpine reactivity
+
+        filters: {
+          subject: '',
+          min_exp: '',
+          verified_only: 'true',
+        },
+
+        modal: {
+          open: false,
+          teacher: null,
+          subject: '',
+          message: '',
+          submitting: false,
+          error: '',
+        },
+
+        toast: { show: false, msg: '', type: 'success' },
+
+        async init() {
+          if (!TG.TokenStore.isLoggedIn()) {
+            window.location.href = '/login.html';
+            return;
+          }
+          await this.search();
+          await this.loadSentRequests();
+        },
+
+        async search() {
+          this.loading = true;
+          try {
+            const data = await TG.Teachers.list();
+            let results = Array.isArray(data) ? data : [];
+
+            // client-side filters
+            if (this.filters.verified_only === 'true') {
+              results = results.filter(t => t.is_verified);
+            }
+            if (this.filters.min_exp) {
+              const min = parseInt(this.filters.min_exp);
+              results = results.filter(t => (t.experience_years ?? 0) >= min);
+            }
+
+            this.teachers = results;
+          } catch(e) {
+            this.showToast('Failed to load teachers. Please try again.', 'error');
+          }
+          this.loading = false;
+        },
+
+        async loadSentRequests() {
+          try {
+            const requests = await TG.TuitionRequests.listMine('pending');
+            if (Array.isArray(requests)) {
+              const ids = {};
+            requests.forEach(r => { ids[r.counterparty_id] = true; });
+            this.sentTeacherIds = ids;
+            }
+          } catch {}
+        },
+
+        openModal(teacher) {
+          this.modal = {
+            open: true,
+            teacher,
+            subject: teacher.subjects?.length === 1 ? teacher.subjects[0] : '',
+            message: '',
+            submitting: false,
+            error: '',
+          };
+        },
+
+        async submitRequest() {
+          if (!this.modal.subject) return;
+          this.modal.submitting = true;
+          this.modal.error = '';
+          try {
+            await TG.TuitionRequests.create({
+              teacher_id: this.modal.teacher.id,
+              subject: this.modal.subject,
+              message: this.modal.message || null,
+            });
+            const teacherId = this.modal.teacher.id;
+            const teacherName = this.modal.teacher.full_name;
+            this.sentTeacherIds = { ...this.sentTeacherIds, [teacherId]: true };
+            this.modal.open = false;
+            this.showToast(`Request sent to ${teacherName}!`, 'success');
+          } catch(e) {
+            const detail = e?.detail;
+            if (typeof detail === 'object' && detail?.message) {
+              this.modal.error = detail.message;
+            } else {
+              this.modal.error = typeof detail === 'string' ? detail : 'Failed to send request. Please try again.';
+            }
+          }
+          this.modal.submitting = false;
+        },
+
+        showToast(msg, type = 'success') {
+          this.toast = { show: true, msg, type };
+          setTimeout(() => this.toast.show = false, 3500);
+        },
+      };
+    }
+  </script>
+</body>
+</html>
