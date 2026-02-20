@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>My Profile • TamGam</title>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script defer src="/shared/api.js"></script>
+  <script defer src="/shared/auth.js"></script>
+  <style>
+    :root {
+      --saffron:#E8640C;--teal:#0D5C63;--cream:#FFFCF6;--ink:#1F2937;--ink-lt:#6B7280;--ivory-dk:#E9E2D7;
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:'DM Sans',system-ui,sans-serif; background:var(--cream); color:var(--ink); }
+    .wrap { max-width:980px; margin:0 auto; padding:28px 18px 40px; }
+    .top { display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:18px; }
+    .title { margin:0; font-size:1.6rem; }
+    .back { color:var(--teal); text-decoration:none; font-weight:600; }
+    .card { background:white; border:1px solid var(--ivory-dk); border-radius:16px; padding:22px; }
+    .muted { color:var(--ink-lt); font-size:.93rem; margin-top:4px; }
+    .section-title { margin:18px 0 8px; font-size:.95rem; font-weight:700; color:var(--ink); }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:10px; }
+    .full { grid-column:1/-1; }
+    label { display:block; font-size:.82rem; color:var(--ink-lt); margin-bottom:6px; font-weight:600; }
+    input, textarea, select {
+      width:100%; border:1.4px solid var(--ivory-dk); background:#fff;
+      border-radius:10px; padding:10px 12px; font:inherit; color:var(--ink);
+    }
+    textarea { min-height:88px; resize:vertical; }
+    input:focus, textarea:focus, select:focus { outline:none; border-color:var(--teal); }
+    .actions { margin-top:18px; display:flex; gap:10px; align-items:center; }
+    .btn { border:0; border-radius:10px; padding:10px 16px; font-weight:700; cursor:pointer; }
+    .btn-primary { background:var(--teal); color:#fff; }
+    .badge { display:inline-flex; border-radius:999px; padding:4px 10px; font-size:.78rem; font-weight:700; background:#eef5f5; color:var(--teal); }
+    .msg { font-size:.86rem; }
+    .ok { color:#047857; }
+    .err { color:#b91c1c; }
+    @media (max-width:700px){ .grid{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body x-data x-init="Guards.requireLogin()">
+  <main class="wrap" x-data="profilePage()" x-init="init()">
+    <div class="top">
+      <div>
+        <h1 class="title">Profile</h1>
+        <div class="muted">Manage your profile and personalization settings used by TamGam + Diya.</div>
+      </div>
+      <a class="back" :href="isTeacher ? '/teacher-dashboard.html' : '/dashboard.html'">← Back</a>
+    </div>
+
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:1.05rem;font-weight:700;">Your details</div>
+          <div class="muted" x-text="loaded ? 'If details are missing, fill and save your profile.' : 'Loading profile…'"></div>
+        </div>
+        <span class="badge" x-text="isTeacher ? 'Teacher profile' : 'Student profile'"></span>
+      </div>
+
+      <form class="grid" @submit.prevent="save()">
+        <div>
+          <label>Full name</label>
+          <input type="text" x-model="form.full_name" placeholder="Your full name" />
+        </div>
+        <div>
+          <label>Phone number</label>
+          <input type="text" x-model="form.phone" placeholder="10-digit phone" />
+        </div>
+
+        <template x-if="!isTeacher">
+          <div>
+            <label>Grade</label>
+            <input type="text" x-model="form.grade" placeholder="e.g. 7" />
+          </div>
+        </template>
+
+        <template x-if="isTeacher">
+          <div>
+            <label>Years of experience</label>
+            <input type="number" min="0" x-model="form.years_experience" placeholder="e.g. 5" />
+          </div>
+        </template>
+
+        <template x-if="!isTeacher">
+          <div>
+            <label>School name</label>
+            <input type="text" x-model="form.school_name" placeholder="Your school name" />
+          </div>
+        </template>
+
+        <template x-if="isTeacher">
+          <div>
+            <label>School name (optional)</label>
+            <input type="text" x-model="form.school_name" placeholder="School field name (optional)" />
+          </div>
+        </template>
+
+        <div>
+          <label>School / Institution</label>
+          <input type="text" x-model="form.school_or_institution" placeholder="School or institute name" />
+        </div>
+
+        <div>
+          <label>City</label>
+          <input type="text" x-model="form.address_city" placeholder="City" />
+        </div>
+        <div>
+          <label>State</label>
+          <input type="text" x-model="form.address_state" placeholder="State" />
+        </div>
+        <div>
+          <label>Pincode</label>
+          <input type="text" x-model="form.address_pincode" placeholder="Pincode" />
+        </div>
+
+        <div class="full">
+          <label>Subjects (comma separated)</label>
+          <input type="text" x-model="form.subjectsText" placeholder="Maths, Science" />
+        </div>
+
+        <div class="full">
+          <label>Bio</label>
+          <textarea x-model="form.bio" placeholder="Tell us about yourself"></textarea>
+        </div>
+
+        <template x-if="!isTeacher">
+          <div class="full section-title">Student personalization</div>
+        </template>
+
+        <template x-if="!isTeacher">
+          <div>
+            <label>Preferred language</label>
+            <input type="text" x-model="form.preferred_language" placeholder="English, Hindi..." />
+          </div>
+        </template>
+        <template x-if="!isTeacher">
+          <div>
+            <label>Learning style</label>
+            <select x-model="form.learning_style">
+              <option value="">Select learning style</option>
+              <option value="visual">Visual</option>
+              <option value="auditory">Auditory</option>
+              <option value="reading_writing">Reading/Writing</option>
+              <option value="kinesthetic">Kinesthetic</option>
+              <option value="mixed">Mixed</option>
+            </select>
+          </div>
+        </template>
+        <template x-if="!isTeacher">
+          <div>
+            <label>Target exam</label>
+            <input type="text" x-model="form.target_exam" placeholder="Olympiad / Board / Entrance" />
+          </div>
+        </template>
+        <template x-if="!isTeacher">
+          <div>
+            <label>Weekly study hours</label>
+            <input type="number" min="0" x-model="form.weekly_study_hours" placeholder="e.g. 8" />
+          </div>
+        </template>
+        <template x-if="!isTeacher">
+          <div class="full">
+            <label>Strengths (comma separated)</label>
+            <input type="text" x-model="form.strengthsText" placeholder="Algebra, Diagrams" />
+          </div>
+        </template>
+        <template x-if="!isTeacher">
+          <div class="full">
+            <label>Improvement areas (comma separated)</label>
+            <input type="text" x-model="form.improvementAreasText" placeholder="Fractions, Long answers" />
+          </div>
+        </template>
+        <template x-if="!isTeacher">
+          <div class="full">
+            <label>Goals (comma separated)</label>
+            <input type="text" x-model="form.goalsText" placeholder="Score 90%+, improve science concepts" />
+          </div>
+        </template>
+
+        <template x-if="isTeacher">
+          <div class="full section-title">Teacher personalization</div>
+        </template>
+
+        <template x-if="isTeacher">
+          <div>
+            <label>Preferred language</label>
+            <input type="text" x-model="form.preferred_language" placeholder="English, Hindi..." />
+          </div>
+        </template>
+        <template x-if="isTeacher">
+          <div>
+            <label>Teaching style</label>
+            <select x-model="form.teaching_style">
+              <option value="">Select teaching style</option>
+              <option value="conceptual">Conceptual</option>
+              <option value="exam_oriented">Exam oriented</option>
+              <option value="interactive">Interactive</option>
+              <option value="story_based">Story based</option>
+              <option value="mixed">Mixed</option>
+            </select>
+          </div>
+        </template>
+        <template x-if="isTeacher">
+          <div class="full">
+            <label>Focus grades (comma separated)</label>
+            <input type="text" x-model="form.focusGradesText" placeholder="6, 7, 8" />
+          </div>
+        </template>
+        <template x-if="isTeacher">
+          <div class="full">
+            <label>Focus boards (comma separated)</label>
+            <input type="text" x-model="form.focusBoardsText" placeholder="CBSE, ICSE, State board" />
+          </div>
+        </template>
+        <template x-if="isTeacher">
+          <div>
+            <label>Class note tone</label>
+            <select x-model="form.class_note_tone">
+              <option value="">Select tone</option>
+              <option value="simple">Simple</option>
+              <option value="exam_focused">Exam focused</option>
+              <option value="encouraging">Encouraging</option>
+              <option value="detailed">Detailed</option>
+            </select>
+          </div>
+        </template>
+        <template x-if="isTeacher">
+          <div class="full">
+            <label>Class note preferences</label>
+            <textarea x-model="form.class_note_preferences" placeholder="E.g. include key points, formulas, and quick revision checklist"></textarea>
+          </div>
+        </template>
+
+        <div class="actions full">
+          <button class="btn btn-primary" :disabled="saving" type="submit" x-text="saving ? 'Saving…' : 'Save profile'"></button>
+          <span class="msg ok" x-show="savedMsg" x-text="savedMsg"></span>
+          <span class="msg err" x-show="errMsg" x-text="errMsg"></span>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    function profilePage() {
+      return {
+        loaded: false,
+        saving: false,
+        savedMsg: '',
+        errMsg: '',
+        isTeacher: TG.TokenStore.getUser()?.role === 'teacher',
+        form: {
+          full_name: '', phone: '', grade: '', years_experience: '',
+          school_name: '', school_or_institution: '',
+          address_city: '', address_state: '', address_pincode: '',
+          bio: '', subjectsText: '',
+          preferred_language: '', learning_style: '', target_exam: '', weekly_study_hours: '',
+          strengthsText: '', improvementAreasText: '', goalsText: '',
+          teaching_style: '', focusGradesText: '', focusBoardsText: '', class_note_tone: '', class_note_preferences: '',
+        },
+        toCommaText(v) { return Array.isArray(v) ? v.join(', ') : ''; },
+        toList(v) {
+          return (v || '')
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean);
+        },
+        async init() {
+          try {
+            const me = this.isTeacher ? await TG.Teachers.getMe() : await TG.Students.getMe();
+            this.form.full_name = me?.full_name || '';
+            this.form.phone = me?.phone || '';
+            this.form.grade = me?.grade || '';
+            this.form.years_experience = me?.years_experience ?? '';
+            this.form.school_name = me?.school_name || '';
+            this.form.school_or_institution = me?.school_or_institution || '';
+            this.form.address_city = me?.address_city || me?.city || '';
+            this.form.address_state = me?.address_state || me?.state || '';
+            this.form.address_pincode = me?.address_pincode || me?.pincode || '';
+            this.form.bio = me?.bio || '';
+            this.form.subjectsText = this.toCommaText(me?.subjects);
+
+            this.form.preferred_language = me?.preferred_language || '';
+            this.form.learning_style = me?.learning_style || '';
+            this.form.target_exam = me?.target_exam || '';
+            this.form.weekly_study_hours = me?.weekly_study_hours ?? '';
+            this.form.strengthsText = this.toCommaText(me?.strengths);
+            this.form.improvementAreasText = this.toCommaText(me?.improvement_areas);
+            this.form.goalsText = this.toCommaText(me?.goals);
+
+            this.form.teaching_style = me?.teaching_style || '';
+            this.form.focusGradesText = this.toCommaText(me?.focus_grades);
+            this.form.focusBoardsText = this.toCommaText(me?.focus_boards);
+            this.form.class_note_tone = me?.class_note_tone || '';
+            this.form.class_note_preferences = me?.class_note_preferences || '';
+          } catch (e) {
+            this.errMsg = e?.message || 'Could not load profile.';
+          } finally {
+            this.loaded = true;
+          }
+        },
+        async save() {
+          this.saving = true;
+          this.savedMsg = '';
+          this.errMsg = '';
+          try {
+            const payload = {
+              full_name: this.form.full_name || null,
+              phone: this.form.phone || null,
+              school_name: this.form.school_name || null,
+              school_or_institution: this.form.school_or_institution || null,
+              address_city: this.form.address_city || null,
+              address_state: this.form.address_state || null,
+              address_pincode: this.form.address_pincode || null,
+              bio: this.form.bio || null,
+              subjects: this.toList(this.form.subjectsText),
+            };
+
+            if (this.isTeacher) {
+              payload.years_experience = this.form.years_experience === '' ? null : Number(this.form.years_experience);
+              payload.preferred_language = this.form.preferred_language || null;
+              payload.teaching_style = this.form.teaching_style || null;
+              payload.focus_grades = this.toList(this.form.focusGradesText);
+              payload.focus_boards = this.toList(this.form.focusBoardsText);
+              payload.class_note_tone = this.form.class_note_tone || null;
+              payload.class_note_preferences = this.form.class_note_preferences || null;
+              await TG.Teachers.updateMe(payload);
+            } else {
+              payload.grade = this.form.grade || null;
+              payload.preferred_language = this.form.preferred_language || null;
+              payload.learning_style = this.form.learning_style || null;
+              payload.target_exam = this.form.target_exam || null;
+              payload.weekly_study_hours = this.form.weekly_study_hours === '' ? null : Number(this.form.weekly_study_hours);
+              payload.strengths = this.toList(this.form.strengthsText);
+              payload.improvement_areas = this.toList(this.form.improvementAreasText);
+              payload.goals = this.toList(this.form.goalsText);
+              await TG.Students.updateMe(payload);
+            }
+
+            const existing = TG.TokenStore.getUser() || {};
+            TG.TokenStore.set(TG.TokenStore.getAccess(), TG.TokenStore.getRefresh(), {
+              ...existing,
+              full_name: this.form.full_name || existing.full_name,
+            });
+            if (window.Alpine?.store('auth')) Alpine.store('auth').user = TG.TokenStore.getUser();
+
+            this.savedMsg = 'Profile updated successfully.';
+          } catch (e) {
+            this.errMsg = e?.message || 'Failed to update profile.';
+          } finally {
+            this.saving = false;
+          }
+        }
+      }
+    }
+  </script>
+</body>
+</html>
