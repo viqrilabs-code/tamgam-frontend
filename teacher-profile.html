@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teacher Profile - TamGam</title>
+  <script src="/shared/api.js"></script>
+  <script src="/shared/auth.js"></script>
+  <style>
+    :root { --bg:#f8f6f0; --card:#fff; --ink:#1a1a2e; --muted:#4b5563; --teal:#0d5c63; --saffron:#e8640c; --line:#e5dcc8; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Arial, sans-serif; background:var(--bg); color:var(--ink); }
+    .wrap { max-width:960px; margin:24px auto; padding:0 16px; }
+    .top { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+    .back { color:var(--teal); text-decoration:none; font-weight:700; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; }
+    .name { font-size:1.6rem; font-weight:800; margin:0 0 4px; }
+    .meta { color:var(--muted); font-size:.92rem; }
+    .chips { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 0; }
+    .chip { padding:5px 10px; border-radius:999px; border:1px solid var(--line); font-size:.8rem; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px; }
+    .sec h3 { margin:0 0 8px; font-size:1rem; }
+    .sec p { margin:0; color:var(--muted); line-height:1.5; }
+    @media (max-width:720px){ .grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a class="back" href="/find-teachers.html">Back to Find Teacher</a>
+      <a class="back" id="requestLink" href="/find-teachers.html">Request Tuition</a>
+    </div>
+    <div class="card" id="profileCard">Loading...</div>
+  </div>
+
+  <script>
+    (async function () {
+      const params = new URLSearchParams(window.location.search);
+      let teacherId = params.get('teacher_id') || params.get('id');
+      if (!teacherId && window.location.hash) {
+        const hash = window.location.hash.replace(/^#/, '').trim();
+        if (hash) teacherId = hash;
+      }
+      if (!teacherId) {
+        try { teacherId = sessionStorage.getItem('tg_last_teacher_profile_id') || ''; } catch {}
+      }
+      const card = document.getElementById('profileCard');
+      const reqLink = document.getElementById('requestLink');
+      if (!teacherId) {
+        card.textContent = 'Teacher ID missing.';
+        return;
+      }
+      try { sessionStorage.setItem('tg_last_teacher_profile_id', teacherId); } catch {}
+      reqLink.href = '/find-teachers.html';
+      try {
+        const p = await TG.Teachers.getPublic(teacherId);
+        const subjects = Array.isArray(p.subjects) ? p.subjects : [];
+        card.innerHTML = `
+          <h1 class="name">${p.full_name || ''}</h1>
+          <div class="meta">${p.school_or_institution || p.school_name || 'Independent teacher'}${p.is_verified ? ' | Verified' : ''}</div>
+          <div class="chips">${subjects.map(s => `<span class="chip">${s}</span>`).join('')}</div>
+          <div class="grid">
+            <div class="sec">
+              <h3>About</h3>
+              <p>${p.bio || 'No bio available.'}</p>
+            </div>
+            <div class="sec">
+              <h3>Experience</h3>
+              <p>${p.experience_years != null ? `${p.experience_years} years` : 'Not specified'}</p>
+            </div>
+            <div class="sec">
+              <h3>Teaching Style</h3>
+              <p>${p.teaching_style || 'Not specified'}</p>
+            </div>
+            <div class="sec">
+              <h3>Qualifications</h3>
+              <p>${p.qualifications || 'Not specified'}</p>
+            </div>
+          </div>
+        `;
+      } catch (e) {
+        card.textContent = e?.message || 'Could not load teacher profile.';
+      }
+    })();
+  </script>
+</body>
+</html>

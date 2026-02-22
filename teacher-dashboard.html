@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Teacher Dashboard — TamGam</title>
+  <title>Teacher Dashboard - TamGam</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display@0;1&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js" defer></script>
   <script src="/shared/api.js"></script>
   <script src="/shared/auth.js"></script>
+  <script src="/shared/branding.js"></script>
   <style>
     :root {
       --saffron:#E8640C;--saffron-dk:#C04F06;--saffron-lt:#F5914A;
@@ -20,7 +21,7 @@
     * { margin:0;padding:0;box-sizing:border-box; }
     body { font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);display:flex;min-height:100vh; }
 
-    /* ── Sidebar (teacher teal theme) ── */
+    /*  Sidebar (teacher teal theme)  */
     .sidebar {
       width: 240px;flex-shrink:0;
       background: var(--teal);
@@ -47,14 +48,28 @@
     .user-role { font-size:.75rem;color:rgba(255,255,255,.5); }
     .logout-btn { background:none;border:none;cursor:pointer;color:rgba(255,255,255,.4);font-size:1.1rem;padding:4px;margin-left:auto;transition:color .2s; }
     .logout-btn:hover { color:var(--saffron-lt); }
+    .count-badge {
+      margin-left:auto;
+      min-width:20px;
+      height:20px;
+      border-radius:999px;
+      background:var(--saffron);
+      color:white;
+      font-size:.7rem;
+      font-weight:700;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:0 6px;
+    }
 
-    /* ── Main ── */
+    /*  Main  */
     .main { flex:1;padding:36px 40px;overflow-y:auto; }
     .page-header { margin-bottom:32px; }
     .page-header h1 { font-family:'Playfair Display',serif;font-size:2rem;color:var(--ink);margin-bottom:4px; }
     .page-header p { font-size:.95rem;color:var(--ink-lt); }
 
-    /* ── Verification banner ── */
+    /*  Verification banner  */
     .verify-banner {
       display:flex;align-items:center;gap:16px;
       border-radius:14px;padding:16px 20px;margin-bottom:24px;
@@ -69,7 +84,7 @@
     .btn-primary { background:var(--saffron);color:white; }
     .btn-primary:hover { background:var(--saffron-dk);transform:translateY(-1px); }
 
-    /* ── Stats ── */
+    /*  Stats  */
     .stats-row { display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:32px; }
     .stat-card { background:white;border-radius:16px;padding:20px;border:1px solid var(--ivory-dk); }
     .stat-label { font-size:.78rem;font-weight:600;color:var(--ink-lt);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em; }
@@ -77,11 +92,11 @@
     .stat-sub   { font-size:.78rem;color:var(--ink-lt);margin-top:4px; }
     .stat-icon  { float:right;font-size:1.5rem;opacity:.7; }
 
-    /* ── Grid ── */
+    /*  Grid  */
     .dash-grid { display:grid;grid-template-columns:1fr 340px;gap:24px; }
     @media (max-width:1100px) { .dash-grid { grid-template-columns:1fr; } }
 
-    /* ── Card ── */
+    /*  Card  */
     .card { background:white;border-radius:20px;border:1px solid var(--ivory-dk);overflow:hidden;margin-bottom:24px; }
     .card-header { padding:20px 24px 0;display:flex;justify-content:space-between;align-items:center; }
     .card-title { font-size:1rem;font-weight:700;color:var(--ink); }
@@ -89,7 +104,7 @@
     .card-link:hover { text-decoration:underline; }
     .card-body  { padding:16px 24px 20px; }
 
-    /* ── Class table ── */
+    /*  Class table  */
     .class-row { display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--ivory-dk); }
     .class-row:last-child { border-bottom:none; }
     .class-dot { width:10px;height:10px;border-radius:50%;flex-shrink:0; }
@@ -100,6 +115,7 @@
     .chip-scheduled { background:rgba(13,92,99,.1);color:var(--teal); }
     .chip-live      { background:rgba(220,38,38,.1);color:#DC2626;animation:pulse-chip 1.5s ease-in-out infinite; }
     .chip-completed { background:var(--ivory-dk);color:var(--ink-lt); }
+    .chip-cancelled { background:rgba(185,28,28,.12);color:#b91c1c; }
     @keyframes pulse-chip { 0%,100%{opacity:1;} 50%{opacity:.6;} }
     .class-actions { display:flex;gap:6px; }
     .action-btn {
@@ -112,7 +128,7 @@
     .action-saf   { border-color:var(--saffron);color:var(--saffron); }
     .action-saf:hover { background:var(--saffron);color:white; }
 
-    /* ── Create class modal ── */
+    /*  Create class modal  */
     .modal-overlay {
       position:fixed;inset:0;background:rgba(26,26,46,.5);
       backdrop-filter:blur(4px);z-index:100;
@@ -138,76 +154,273 @@
     .btn-create { background:var(--teal);color:white;padding:10px 20px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .2s; }
     .btn-create:hover { background:var(--teal-lt);transform:translateY(-1px); }
 
-    /* ── Earnings ── */
+    /*  Earnings  */
     .earnings-row { display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--ivory-dk);font-size:.88rem; }
     .earnings-row:last-child { border-bottom:none; }
 
-    /* ── Empty ── */
+    /*  Empty  */
     .empty { text-align:center;padding:28px 24px;color:var(--ink-lt); }
     .empty-icon { font-size:2.5rem;margin-bottom:8px; }
     .empty p { font-size:.88rem; }
 
-    /* ── Skeleton ── */
+    /*  Skeleton  */
     .skeleton { background:linear-gradient(90deg,var(--ivory-dk) 25%,var(--ivory) 50%,var(--ivory-dk) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:6px; }
     @keyframes shimmer { to { background-position:-200% 0; } }
     .skel-line { height:14px;margin:8px 0; }
 
     .spinner { width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:white;animation:spin .6s linear infinite;display:inline-block; }
     @keyframes spin { to { transform:rotate(360deg); } }
+    .request-row { padding:12px 0; border-bottom:1px solid var(--ivory-dk); }
+    .request-row:last-child { border-bottom:none; }
+    .request-name { font-size:.9rem; font-weight:700; color:var(--ink); }
+    .request-meta { font-size:.78rem; color:var(--ink-lt); margin-top:3px; }
+    .request-msg { font-size:.82rem; color:var(--ink); margin-top:7px; background:var(--cream); border:1px solid var(--ivory-dk); border-radius:8px; padding:8px 10px; }
+    .request-actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+    .btn-accept, .btn-decline {
+      border:0; border-radius:8px; padding:8px 12px; cursor:pointer;
+      font-family:'DM Sans',sans-serif; font-size:.8rem; font-weight:700;
+    }
+    .btn-accept { background:#0f766e; color:#fff; }
+    .btn-decline { background:#b91c1c; color:#fff; }
+    .decline-input {
+      width:100%; margin-top:8px; padding:8px 10px; border-radius:8px;
+      border:1px solid var(--ivory-dk); font-size:.8rem; font-family:'DM Sans',sans-serif;
+    }
+
+    /*  Notifications  */
+    .notif-panel .card-header { padding-bottom: 12px; }
+    .notif-head-actions { display:flex; align-items:center; gap:10px; }
+    .notif-close {
+      border:1px solid var(--ivory-dk);
+      background:white;
+      color:var(--ink-lt);
+      border-radius:8px;
+      padding:6px 10px;
+      font-size:.78rem;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .notif-item {
+      border:1px solid var(--ivory-dk);
+      border-radius:12px;
+      padding:12px;
+      margin-bottom:10px;
+      background:#fff;
+    }
+    .notif-item.unread { border-color:rgba(13,92,99,.35); background:rgba(13,92,99,.04); }
+    .notif-top { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+    .notif-type {
+      display:inline-flex;
+      align-items:center;
+      border-radius:999px;
+      padding:2px 8px;
+      font-size:.7rem;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+      background:var(--ivory-dk);
+      color:var(--ink-lt);
+    }
+    .notif-time { font-size:.75rem; color:var(--ink-lt); white-space:nowrap; }
+    .notif-title { font-size:.9rem; font-weight:700; color:var(--ink); margin-bottom:4px; }
+    .notif-body { font-size:.84rem; color:var(--ink-lt); line-height:1.5; }
+
+    /* Batch manager */
+    .class-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+    .class-tab {
+      border:1px solid var(--ivory-dk);
+      background:#fff;
+      color:var(--ink-lt);
+      border-radius:8px;
+      padding:6px 12px;
+      font-size:.82rem;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .class-tab.active { background:var(--teal); color:#fff; border-color:var(--teal); }
+    .batch-create-form { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+    .batch-create-form .wide { grid-column:1 / -1; }
+    .batch-stack { display:flex; flex-direction:column; gap:10px; }
+    .batch-item {
+      border:1px solid var(--ivory-dk);
+      border-radius:12px;
+      padding:12px;
+      background:var(--cream);
+    }
+    .batch-item-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px; }
+    .batch-item-name { font-size:.9rem; font-weight:700; color:var(--ink); }
+    .batch-members { font-size:.78rem; color:var(--ink-lt); margin-bottom:8px; }
+    .batch-members-list { font-size:.8rem; color:var(--ink); margin-bottom:8px; }
+    .batch-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .batch-row select { flex:1; min-width:180px; }
+    .batch-class-list {
+      margin-top:10px;
+      border-top:1px solid var(--ivory-dk);
+      padding-top:10px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .batch-class-item {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border:1px solid var(--ivory-dk);
+      background:#fff;
+      border-radius:8px;
+      padding:8px 10px;
+    }
+    .batch-class-meta { font-size:.78rem; color:var(--ink-lt); }
+    .batch-settings {
+      margin-top:10px;
+      border-top:1px solid var(--ivory-dk);
+      padding-top:10px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+    .batch-settings .full { grid-column:1 / -1; }
+    .batch-settings input, .batch-settings select {
+      width:100%;
+      padding:8px 10px;
+      border:1px solid var(--ivory-dk);
+      border-radius:8px;
+      font-size:.8rem;
+      font-family:'DM Sans',sans-serif;
+      background:#fff;
+    }
+    .batch-days-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    @media (max-width: 820px) {
+      .batch-create-form { grid-template-columns:1fr; }
+    }
   </style>
 </head>
 <body x-data x-init="Guards.requireTeacher()">
 
-  <!-- ── Sidebar ── -->
+  <!--  Sidebar  -->
   <aside class="sidebar">
     <a href="/" class="sidebar-logo">
-      <span class="flame">🕯️</span>
+      <span class="flame"><img src="/logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></span>
       <span class="sidebar-brand">Tam<em>Gam</em></span>
     </a>
     <div class="nav-section">
       <div class="nav-label">Teach</div>
       <a href="/teacher-dashboard.html" class="nav-item active">
-        <span class="nav-icon">🏠</span> Dashboard
+        <span class="nav-icon">D</span> Dashboard
       </a>
       <a href="#" class="nav-item">
-        <span class="nav-icon">📹</span> My classes
+        <span class="nav-icon">C</span> My classes
       </a>
-      <a href="#" class="nav-item">
-        <span class="nav-icon">👥</span> My students
+      <a href="/teacher-batches.html" class="nav-item">
+        <span class="nav-icon">B</span> Batches
+      </a>
+      <a href="#my-students" class="nav-item">
+        <span class="nav-icon">S</span> My students
       </a>
       <a href="/community.html" class="nav-item">
-        <span class="nav-icon">💬</span> Community
+        <span class="nav-icon">M</span> Community
       </a>
     </div>
     <div class="nav-section">
       <div class="nav-label">Account</div>
-      <a href="/profile.html" class="nav-item"><span class="nav-icon">👤</span> Profile</a>
-      <a href="#" class="nav-item"><span class="nav-icon">💰</span> Earnings</a>
-      <a href="#" class="nav-item"><span class="nav-icon">🔔</span> Notifications</a>
+      <a href="/profile.html" class="nav-item"><span class="nav-icon">P</span> Profile</a>
+      <a href="#" class="nav-item"><span class="nav-icon">E</span> Earnings</a>
+      <a href="#notifications-panel" class="nav-item" @click.prevent="window.dispatchEvent(new CustomEvent('tg-open-teacher-notifications'))"><span class="nav-icon">N</span> Notifications</a>
+      <a href="#tuition-requests" class="nav-item" @click.prevent="$store.notifs.openAndGo('#tuition-requests')">
+        <span class="nav-icon">R</span> Tution Requests
+        <span class="count-badge" x-show="$store.notifs.count > 0" x-text="$store.notifs.count"></span>
+      </a>
     </div>
     <div class="sidebar-footer">
       <div class="user-chip" x-data>
         <div class="user-avatar" x-text="$store.auth.firstName[0]?.toUpperCase()"></div>
         <div class="user-info">
-          <div class="user-name" x-text="$store.auth.user?.full_name || '—'"></div>
+          <div class="user-name" x-text="$store.auth.user?.full_name || ''"></div>
           <div class="user-role">Teacher
-            <span x-show="$store.auth.isVerifiedTeacher" style="color:#a3e635;">🟡T</span>
+            <span x-show="$store.auth.isVerifiedTeacher" style="color:#a3e635;">VERIFIED</span>
           </div>
         </div>
-        <button class="logout-btn" @click="$store.auth.logout()">↗</button>
+        <button class="logout-btn" @click="$store.auth.logout()">OUT</button>
       </div>
     </div>
   </aside>
 
-  <!-- ── Main ── -->
+  <!--  Main  -->
   <main class="main"
     x-data="{
       profile: null,
       classes: [],
       earnings: null,
+      incomingRequests: [],
+      myStudents: [],
+      studentsLoading: false,
+      tuitionLoading: false,
+      actingRequestId: null,
+      declineReasonById: {},
+      notifications: [],
+      notificationsLoading: false,
+      notificationsError: '',
+      showNotifications: false,
+      verification: null,
+      verificationSaving: false,
+      showVerificationRequestModal: false,
+      verificationSelectedStudentIds: [],
+      verificationStudentSearch: '',
+      verificationSearchResults: [],
+      verificationSearchLoading: false,
+      verificationError: '',
       loading: true,
       showCreate: false,
       creating: false,
+      showAssessmentUpload: false,
+      selectedClassForAssessment: null,
+      assessmentFile: null,
+      assessmentGenerating: false,
+      assessmentGenError: '',
+      assessmentPreview: null,
+      showHomeworkCreate: false,
+      selectedClassForHomework: null,
+      homeworkTitle: '',
+      homeworkDescription: '',
+      homeworkDueAt: '',
+      homeworkFile: null,
+      homeworkSaving: false,
+      homeworkError: '',
+      homeworkSuccess: '',
+      homeworkSubmissions: [],
+      homeworkSubmissionsLoading: false,
+      showFeedbackModal: false,
+      selectedSubmissionForFeedback: null,
+      feedbackTextInput: '',
+      feedbackScoreInput: '',
+      feedbackSaving: false,
+      feedbackError: '',
+      activeBatchGrade: 8,
+      batchesByGrade: { 8: [], 9: [], 10: [] },
+      enrolledStudentsByGrade: { 8: [], 9: [], 10: [] },
+      batchLoadingByGrade: { 8: false, 9: false, 10: false },
+      batchCreateName: '',
+      batchCreateSubject: '',
+      batchCreateTiming: '',
+      batchCreateDescription: '',
+      batchStudentToAdd: {},
+      batchError: '',
+      batchSaving: false,
+      batchSettingsById: {},
+      batchCancelDayById: {},
+      batchCancelDayNoteById: {},
+      showBatchCreate: false,
+      batchCreateGrade: 8,
+      batchCreateMaxStudents: '',
+      batchCreateDaysCsv: '',
+      batchCreateVisibleToStudents: true,
+      showReschedule: false,
+      rescheduleSaving: false,
+      selectedBatchForReschedule: null,
+      selectedClassForReschedule: null,
+      rescheduleClassAt: '',
+      rescheduleDuration: 60,
 
       newClass: {
         title: '',
@@ -215,56 +428,614 @@
         description: '',
         scheduled_at: '',
         duration_minutes: 60,
+        batch_id: '',
       },
 
       async init() {
         Guards.requireTeacher();
+        window.addEventListener('tg-open-teacher-notifications', () => this.openNotifications());
+        window.addEventListener('tg-open-batch-create', () => this.openBatchCreateModal());
         Alpine.store('notifs').fetch();
         try {
-          const [p, c, e] = await Promise.allSettled([
+          const [p, c, e, v] = await Promise.allSettled([
             TG.Teachers.getMe(),
             TG.Classes.getMine(),
             TG.Teachers.getEarnings(),
+            TG.Teachers.getVerification(),
           ]);
           this.profile  = p.status==='fulfilled' ? p.value : null;
-          this.classes  = c.status==='fulfilled' ? (Array.isArray(c.value) ? c.value : c.value?.items || []) : [];
+          this.classes  = c.status==='fulfilled' ? (Array.isArray(c.value) ? c.value : c.value?.classes || c.value?.items || []) : [];
           this.earnings = e.status==='fulfilled' ? e.value : null;
+          this.verification = v.status==='fulfilled' ? v.value : null;
+          this.syncAuthVerifiedFlag();
+          await this.fetchIncomingTuitionRequests();
+          await this.fetchMyStudents();
+          await this.fetchAllBatchData();
+          await this.fetchHomeworkSubmissions();
         } catch {}
         this.loading = false;
       },
 
+      get pendingTuitionCount() {
+        return this.incomingRequests.filter(r => r.status === 'pending').length;
+      },
+
+      async fetchIncomingTuitionRequests() {
+        this.tuitionLoading = true;
+        try {
+          const data = await TG.TuitionRequests.listIncoming('pending');
+          this.incomingRequests = Array.isArray(data) ? data : [];
+        } catch {
+          this.incomingRequests = [];
+        } finally {
+          this.tuitionLoading = false;
+        }
+      },
+
+      async fetchMyStudents() {
+        this.studentsLoading = true;
+        try {
+          const data = await TG.TuitionRequests.listMyStudents();
+          this.myStudents = Array.isArray(data) ? data : [];
+        } catch {
+          this.myStudents = [];
+        } finally {
+          this.studentsLoading = false;
+        }
+      },
+      async acceptTuitionRequest(reqId) {
+        this.actingRequestId = reqId;
+        try {
+          await TG.TuitionRequests.accept(reqId);
+          await this.fetchIncomingTuitionRequests();
+          await this.fetchMyStudents();
+          Alpine.store('notifs').fetch();
+        } catch(e) {
+          alert(e.message || 'Failed to accept request.');
+        } finally {
+          this.actingRequestId = null;
+        }
+      },
+
+      async declineTuitionRequest(reqId) {
+        this.actingRequestId = reqId;
+        try {
+          const reason = this.declineReasonById[reqId] || '';
+          await TG.TuitionRequests.decline(reqId, reason);
+          this.declineReasonById = { ...this.declineReasonById, [reqId]: '' };
+          await this.fetchIncomingTuitionRequests();
+          await this.fetchMyStudents();
+          Alpine.store('notifs').fetch();
+        } catch(e) {
+          alert(e.message || 'Failed to decline request.');
+        } finally {
+          this.actingRequestId = null;
+        }
+      },
       get verificationStatus() {
-        if (!this.profile) return 'unknown';
-        if (this.profile.is_verified) return 'verified';
-        if (this.profile.verification_submitted) return 'pending';
+        if (!this.profile) return 'unverified';
+        if (this.profile.is_verified || this.verification?.status === 'approved') return 'verified';
+        if ((this.verification?.pending_count || 0) > 0) return 'pending';
         return 'unverified';
+      },
+      get verifiedCount() {
+        return Number(this.verification?.verified_count || 0);
+      },
+      get pendingVerificationCount() {
+        return Number(this.verification?.pending_count || 0);
+      },
+      get requiredVerificationCount() {
+        return Number(this.verification?.required_verifications || 3);
+      },
+      get verificationSlotsRemaining() {
+        return Math.max(0, this.requiredVerificationCount - this.verifiedCount - this.pendingVerificationCount);
+      },
+      openVerificationRequestModal() {
+        this.verificationSelectedStudentIds = [];
+        this.verificationStudentSearch = '';
+        this.verificationError = '';
+        this.showVerificationRequestModal = true;
+        this.searchVerificationStudents();
+      },
+      toggleVerificationStudent(studentId) {
+        const key = String(studentId);
+        const list = new Set(this.verificationSelectedStudentIds.map(String));
+        if (list.has(key)) {
+          list.delete(key);
+        } else {
+          if (list.size >= this.verificationSlotsRemaining) return;
+          list.add(key);
+        }
+        this.verificationSelectedStudentIds = Array.from(list);
+      },
+      async refreshVerification() {
+        try {
+          this.verification = await TG.Teachers.getVerification();
+          if (this.verification?.status === 'approved' && this.profile) {
+            this.profile = { ...this.profile, is_verified: true };
+          }
+          this.syncAuthVerifiedFlag();
+        } catch {}
+      },
+      syncAuthVerifiedFlag() {
+        const shouldBeVerified = !!(this.profile?.is_verified || this.verification?.status === 'approved');
+        const user = TG.TokenStore.getUser();
+        if (!user) return;
+        if ((user.is_verified_teacher === true) === shouldBeVerified) return;
+        const updated = { ...user, is_verified_teacher: shouldBeVerified };
+        localStorage.setItem('tg_user', JSON.stringify(updated));
+        if (Alpine?.store?.('auth')) {
+          Alpine.store('auth').user = updated;
+        }
+      },
+      async searchVerificationStudents() {
+        this.verificationSearchLoading = true;
+        this.verificationError = '';
+        try {
+          const rows = await TG.Teachers.searchVerificationStudents(this.verificationStudentSearch || '', 30);
+          this.verificationSearchResults = Array.isArray(rows) ? rows : [];
+        } catch (e) {
+          this.verificationSearchResults = [];
+          this.verificationError = e?.message || 'Failed to search students.';
+        } finally {
+          this.verificationSearchLoading = false;
+        }
+      },
+      async submitVerificationRequests() {
+        if (!this.verificationSelectedStudentIds.length) {
+          this.verificationError = 'Select at least one student.';
+          return;
+        }
+        this.verificationSaving = true;
+        this.verificationError = '';
+        try {
+          this.verification = await TG.Teachers.requestVerification(this.verificationSelectedStudentIds);
+          this.showVerificationRequestModal = false;
+          this.verificationSelectedStudentIds = [];
+          await this.openNotifications();
+        } catch (e) {
+          this.verificationError = e?.message || 'Failed to request verification.';
+        } finally {
+          this.verificationSaving = false;
+        }
       },
 
       statusChip(status) {
-        const map = { scheduled:'chip-scheduled', live:'chip-live', completed:'chip-completed' };
+        const map = { scheduled:'chip-scheduled', live:'chip-live', completed:'chip-completed', cancelled:'chip-cancelled' };
         return map[status] || 'chip-scheduled';
       },
 
       statusLabel(status) {
-        const map = { scheduled:'Scheduled', live:'🔴 Live', completed:'Completed' };
+        const map = { scheduled:'Scheduled', live:'LIVE', completed:'Completed', cancelled:'Cancelled' };
         return map[status] || status;
+      },
+      classesWithinWindow() {
+        const now = Date.now();
+        const cutoff = now - (48 * 60 * 60 * 1000);
+        return (this.classes || [])
+          .filter((cls) => {
+            const ts = Date.parse(cls?.scheduled_at);
+            return Number.isFinite(ts) && ts >= cutoff;
+          })
+          .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
       },
 
       subjectColor(s) { return Utils.subjectColor(s); },
+
+      notificationTypeLabel(type) {
+        return String(type || 'update').replace(/_/g, ' ');
+      },
+
+      async openNotifications() {
+        this.showNotifications = true;
+        this.notificationsLoading = true;
+        this.notificationsError = '';
+        try {
+          const data = await TG.Notifications.list();
+          this.notifications = Array.isArray(data?.notifications) ? data.notifications : [];
+        } catch (e) {
+          this.notifications = [];
+          this.notificationsError = e?.message || 'Could not load notifications.';
+        } finally {
+          this.notificationsLoading = false;
+        }
+        try {
+          await Alpine.store('notifs').markAllRead();
+          this.notifications = this.notifications.map(n => ({ ...n, is_read: true }));
+        } catch {}
+        await this.refreshVerification();
+      },
+
+      classTabLabel(grade) {
+        return `Class ${grade}`;
+      },
+
+      openBatchCreateModal() {
+        this.batchCreateGrade = this.activeBatchGrade || 8;
+        this.showBatchCreate = true;
+      },
+
+      async fetchAllBatchData() {
+        await Promise.all([8, 9, 10].map((grade) => this.fetchBatchDataForGrade(grade)));
+      },
+
+      async fetchBatchDataForGrade(grade) {
+        this.batchLoadingByGrade = { ...this.batchLoadingByGrade, [grade]: true };
+        this.batchError = '';
+        try {
+          const [batchesResp, studentsResp] = await Promise.all([
+            TG.Classes.listBatches({ grade_level: grade }),
+            TG.Classes.listBatchEligibleStudents({ grade_level: grade }),
+          ]);
+          this.batchesByGrade = {
+            ...this.batchesByGrade,
+            [grade]: Array.isArray(batchesResp?.batches) ? batchesResp.batches : [],
+          };
+          this.enrolledStudentsByGrade = {
+            ...this.enrolledStudentsByGrade,
+            [grade]: Array.isArray(studentsResp?.students) ? studentsResp.students : [],
+          };
+        } catch (e) {
+          this.batchError = e?.message || 'Failed to load batches.';
+        } finally {
+          this.batchLoadingByGrade = { ...this.batchLoadingByGrade, [grade]: false };
+        }
+      },
+
+      setActiveBatchGrade(grade) {
+        this.activeBatchGrade = grade;
+      },
+
+      get activeBatches() {
+        return this.batchesByGrade[this.activeBatchGrade] || [];
+      },
+
+      get activeEnrolledStudents() {
+        return this.enrolledStudentsByGrade[this.activeBatchGrade] || [];
+      },
+
+      get allBatches() {
+        return [...(this.batchesByGrade[8] || []), ...(this.batchesByGrade[9] || []), ...(this.batchesByGrade[10] || [])];
+      },
+
+      eligibleStudentsForBatch(batch) {
+        const memberIds = new Set((batch?.members || []).map((m) => String(m.student_id)));
+        return this.activeEnrolledStudents.filter((st) => !memberIds.has(String(st.student_id)));
+      },
+
+      batchSettings(batch) {
+        if (!this.batchSettingsById[batch.id]) {
+          this.batchSettingsById = {
+            ...this.batchSettingsById,
+            [batch.id]: {
+              student_selection_enabled: batch.student_selection_enabled !== false,
+              max_students: batch.max_students ?? '',
+              class_days_csv: (batch.class_days || []).join(', '),
+            },
+          };
+        }
+        return this.batchSettingsById[batch.id];
+      },
+
+      async saveBatchSettings(batch) {
+        const s = this.batchSettings(batch);
+        const days = String(s.class_days_csv || '')
+          .split(',')
+          .map((d) => d.trim().toLowerCase())
+          .filter(Boolean);
+        this.batchError = '';
+        try {
+          await TG.Classes.updateBatch(batch.id, {
+            student_selection_enabled: !!s.student_selection_enabled,
+            max_students: s.max_students === '' ? null : Number(s.max_students),
+            class_days: days,
+          });
+          await this.fetchBatchDataForGrade(this.activeBatchGrade);
+        } catch (e) {
+          this.batchError = e?.message || 'Failed to update batch settings.';
+        }
+      },
+
+      async cancelBatchDay(batch) {
+        const day = (this.batchCancelDayById?.[batch.id] || '').trim().toLowerCase();
+        if (!day) return;
+        this.batchError = '';
+        try {
+          await TG.Classes.cancelBatchDay(batch.id, day, this.batchCancelDayNoteById?.[batch.id] || null);
+          this.batchCancelDayById = { ...this.batchCancelDayById, [batch.id]: '' };
+          this.batchCancelDayNoteById = { ...this.batchCancelDayNoteById, [batch.id]: '' };
+          await this.fetchBatchDataForGrade(this.activeBatchGrade);
+        } catch (e) {
+          this.batchError = e?.message || 'Failed to cancel class day.';
+        }
+      },
+
+      selectedStudentIdForBatch(batchId) {
+        return this.batchStudentToAdd?.[batchId] || '';
+      },
+
+      updateBatchStudentChoice(batchId, value) {
+        this.batchStudentToAdd = { ...this.batchStudentToAdd, [batchId]: value };
+      },
+
+      async createBatchForActiveGrade() {
+        if (!this.batchCreateName.trim()) return;
+        this.batchSaving = true;
+        this.batchError = '';
+        try {
+          const days = String(this.batchCreateDaysCsv || '')
+            .split(',')
+            .map((d) => d.trim().toLowerCase())
+            .filter(Boolean);
+          const maxRaw = this.batchCreateMaxStudents;
+          const hasMax = !(maxRaw === '' || maxRaw == null || Number(maxRaw) <= 0);
+          const created = await TG.Classes.createBatch({
+            name: this.batchCreateName.trim(),
+            subject: this.batchCreateSubject.trim() || null,
+            class_timing: this.batchCreateTiming.trim() || null,
+            description: this.batchCreateDescription.trim() || null,
+            grade_level: Number(this.batchCreateGrade || this.activeBatchGrade || 8),
+            max_students: hasMax ? Number(maxRaw) : null,
+            class_days: days,
+          });
+          if (created?.id && this.batchCreateVisibleToStudents === false) {
+            await TG.Classes.updateBatch(created.id, { student_selection_enabled: false });
+          }
+          this.batchCreateName = '';
+          this.batchCreateSubject = '';
+          this.batchCreateTiming = '';
+          this.batchCreateDescription = '';
+          this.batchCreateMaxStudents = '';
+          this.batchCreateDaysCsv = '';
+          this.batchCreateVisibleToStudents = true;
+          this.showBatchCreate = false;
+          await this.fetchBatchDataForGrade(Number(this.batchCreateGrade || this.activeBatchGrade || 8));
+        } catch (e) {
+          this.batchError = e?.message || 'Failed to create batch.';
+        } finally {
+          this.batchSaving = false;
+        }
+      },
+
+      async addStudentToBatch(batchId) {
+        const studentId = this.selectedStudentIdForBatch(batchId);
+        if (!studentId) return;
+        this.batchError = '';
+        try {
+          await TG.Classes.addBatchStudents(batchId, [studentId]);
+          this.batchStudentToAdd = { ...this.batchStudentToAdd, [batchId]: '' };
+          await this.fetchBatchDataForGrade(this.activeBatchGrade);
+        } catch (e) {
+          this.batchError = e?.message || 'Failed to add student to batch.';
+        }
+      },
+
+      scheduleClassFromBatch(batch) {
+        const allowedSubjects = ['mathematics', 'science', 'physics', 'chemistry', 'biology'];
+        const normalizedSubject = String(batch.subject || '').trim().toLowerCase();
+        this.newClass = {
+          ...this.newClass,
+          title: this.newClass.title || `${batch.name} Session`,
+          subject: allowedSubjects.includes(normalizedSubject) ? normalizedSubject : (this.newClass.subject || 'mathematics'),
+          batch_id: batch.id,
+        };
+        this.showCreate = true;
+      },
+
+      classesForBatch(batchId) {
+        return (this.classes || []).filter((c) => String(c.batch_id || '') === String(batchId || ''));
+      },
+      batchNameForClass(cls) {
+        const bid = String(cls?.batch_id || '');
+        if (!bid) return '';
+        const found = (this.allBatches || []).find((b) => String(b.id) === bid);
+        return found?.name || '';
+      },
+      manageClass(cls) {
+        const batch = (this.allBatches || []).find((b) => String(b.id) === String(cls?.batch_id || '')) || null;
+        this.openRescheduleFromBatch(batch, cls);
+      },
+
+      openRescheduleFromBatch(batch, cls) {
+        this.selectedBatchForReschedule = batch || null;
+        this.selectedClassForReschedule = cls || null;
+        if (cls?.scheduled_at) {
+          const dt = new Date(cls.scheduled_at);
+          const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+          this.rescheduleClassAt = local;
+        } else {
+          this.rescheduleClassAt = '';
+        }
+        this.rescheduleDuration = Number(cls?.duration_minutes || 60);
+        this.showReschedule = true;
+      },
+
+      async rescheduleClassFromBatch() {
+        if (!this.selectedClassForReschedule?.id || !this.rescheduleClassAt) return;
+        this.rescheduleSaving = true;
+        this.batchError = '';
+        try {
+          await TG.Classes.update(this.selectedClassForReschedule.id, {
+            scheduled_at: this.rescheduleClassAt,
+            duration_minutes: Number(this.rescheduleDuration || 60),
+          });
+          const c = await TG.Classes.getMine();
+          this.classes = Array.isArray(c) ? c : c?.classes || c?.items || [];
+          this.showReschedule = false;
+          this.selectedClassForReschedule = null;
+          this.selectedBatchForReschedule = null;
+        } catch (e) {
+          this.batchError = e?.message || 'Failed to reschedule class.';
+        } finally {
+          this.rescheduleSaving = false;
+        }
+      },
+      async cancelClassFromManage() {
+        if (!this.selectedClassForReschedule?.id) return;
+        this.rescheduleSaving = true;
+        this.batchError = '';
+        try {
+          await TG.Classes.cancelClass(this.selectedClassForReschedule.id);
+          const c = await TG.Classes.getMine();
+          this.classes = Array.isArray(c) ? c : c?.classes || c?.items || [];
+          await this.fetchAllBatchData();
+          this.showReschedule = false;
+          this.selectedClassForReschedule = null;
+          this.selectedBatchForReschedule = null;
+        } catch (e) {
+          this.batchError = e?.message || 'Failed to cancel class.';
+        } finally {
+          this.rescheduleSaving = false;
+        }
+      },
 
       async createClass() {
         if (!this.newClass.title || !this.newClass.scheduled_at) return;
         this.creating = true;
         try {
-          await TG.Classes.create(this.newClass);
+          const payload = {
+            ...this.newClass,
+            batch_id: this.newClass.batch_id || null,
+          };
+          await TG.Classes.create(payload);
           this.showCreate = false;
-          this.newClass = { title:'', subject:'mathematics', description:'', scheduled_at:'', duration_minutes:60 };
+          this.newClass = { title:'', subject:'mathematics', description:'', scheduled_at:'', duration_minutes:60, batch_id:'' };
           // Refresh class list
           const c = await TG.Classes.getMine();
-          this.classes = Array.isArray(c) ? c : c?.items || [];
+          this.classes = Array.isArray(c) ? c : c?.classes || c?.items || [];
+          await this.fetchAllBatchData();
         } catch(e) {
           alert(e.message || 'Failed to create class.');
         } finally { this.creating = false; }
+      },
+
+      openAssessmentUpload(cls) {
+        this.selectedClassForAssessment = cls || null;
+        this.assessmentFile = null;
+        this.assessmentGenerating = false;
+        this.assessmentGenError = '';
+        this.assessmentPreview = null;
+        this.showAssessmentUpload = true;
+      },
+
+      handleAssessmentFile(event) {
+        this.assessmentFile = event?.target?.files?.[0] || null;
+      },
+
+      async generateClassAssessmentFromUpload() {
+        if (!this.selectedClassForAssessment?.id) return;
+        if (!this.assessmentFile) {
+          this.assessmentGenError = 'Please upload notes or transcript file first.';
+          return;
+        }
+        this.assessmentGenerating = true;
+        this.assessmentGenError = '';
+        try {
+          const data = await TG.Assessments.createFromUpload(this.selectedClassForAssessment.id, this.assessmentFile);
+          this.assessmentPreview = data || null;
+        } catch (e) {
+          this.assessmentGenError = e?.message || 'Failed to generate assessment.';
+        } finally {
+          this.assessmentGenerating = false;
+        }
+      },
+
+      openHomeworkCreate(cls) {
+        this.selectedClassForHomework = cls || null;
+        this.homeworkTitle = '';
+        this.homeworkDescription = '';
+        this.homeworkDueAt = '';
+        this.homeworkFile = null;
+        this.homeworkSaving = false;
+        this.homeworkError = '';
+        this.homeworkSuccess = '';
+        this.showHomeworkCreate = true;
+      },
+
+      handleHomeworkFile(event) {
+        this.homeworkFile = event?.target?.files?.[0] || null;
+      },
+
+      async createHomeworkForClass() {
+        if (!this.selectedClassForHomework?.id) return;
+        if (!this.homeworkTitle.trim() && !this.homeworkDescription.trim() && !this.homeworkFile) {
+          this.homeworkError = 'Add title/description or upload a file.';
+          return;
+        }
+        if (this.homeworkFile && this.homeworkFile.size > (1024 * 1024)) {
+          this.homeworkError = 'File too large. Max 1 MB.';
+          return;
+        }
+        this.homeworkSaving = true;
+        this.homeworkError = '';
+        this.homeworkSuccess = '';
+        try {
+          await TG.Homework.createForClass(
+            this.selectedClassForHomework.id,
+            {
+              title: this.homeworkTitle.trim() || `Homework: ${this.selectedClassForHomework.title}`,
+              description: this.homeworkDescription.trim() || '',
+              due_at: this.homeworkDueAt || null,
+            },
+            this.homeworkFile
+          );
+          this.homeworkSuccess = 'Homework created successfully.';
+        } catch (e) {
+          this.homeworkError = e?.message || 'Failed to create homework.';
+        } finally {
+          this.homeworkSaving = false;
+        }
+      },
+
+      async fetchHomeworkSubmissions() {
+        this.homeworkSubmissionsLoading = true;
+        try {
+          const data = await TG.Homework.listTeacherSubmissions();
+          this.homeworkSubmissions = Array.isArray(data?.submissions) ? data.submissions : [];
+        } catch {
+          this.homeworkSubmissions = [];
+        } finally {
+          this.homeworkSubmissionsLoading = false;
+        }
+      },
+
+      openFeedbackModal(sub) {
+        this.selectedSubmissionForFeedback = sub || null;
+        this.feedbackTextInput = sub?.feedback_text || '';
+        this.feedbackScoreInput = (sub?.feedback_score ?? '') + '';
+        this.feedbackSaving = false;
+        this.feedbackError = '';
+        this.showFeedbackModal = true;
+      },
+
+      async submitFeedback() {
+        if (!this.selectedSubmissionForFeedback?.id) return;
+        if (!this.feedbackTextInput.trim() && this.feedbackScoreInput === '') {
+          this.feedbackError = 'Add feedback text or score.';
+          return;
+        }
+        this.feedbackSaving = true;
+        this.feedbackError = '';
+        try {
+          await TG.Homework.provideFeedback(this.selectedSubmissionForFeedback.id, {
+            feedback_text: this.feedbackTextInput.trim() || null,
+            feedback_score: this.feedbackScoreInput === '' ? null : Number(this.feedbackScoreInput),
+          });
+          this.showFeedbackModal = false;
+          await this.fetchHomeworkSubmissions();
+        } catch (e) {
+          this.feedbackError = e?.message || 'Failed to save feedback.';
+        } finally {
+          this.feedbackSaving = false;
+        }
+      },
+
+      async downloadSubmissionFile(submissionId) {
+        try {
+          await TG.Homework.downloadSubmissionFile(submissionId);
+        } catch (e) {
+          alert(e?.message || 'Failed to download submission file.');
+        }
       },
     }"
   >
@@ -272,62 +1043,166 @@
     <!-- Header -->
     <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;">
       <div>
-        <h1 x-data>Welcome, <span x-text="$store.auth.firstName"></span> 📚</h1>
+        <h1 x-data>Welcome, <span x-text="$store.auth.firstName"></span> </h1>
         <p>Manage your classes, students, and earnings.</p>
       </div>
-      <button class="btn-sm btn-primary" style="margin-top:6px;" @click="showCreate = true">
-        + Schedule class
-      </button>
+      <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
+        <a href="/teacher-batches.html" class="btn-sm" style="background:var(--teal);color:white;text-decoration:none;">Batches</a>
+        <button class="btn-sm btn-primary" @click="showCreate = true">
+          + Schedule class
+        </button>
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div id="notifications-panel" class="card notif-panel" x-show="showNotifications">
+      <div class="card-header">
+        <span class="card-title">Notifications</span>
+        <div class="notif-head-actions">
+          <a href="#" class="card-link" @click.prevent="openNotifications()">Refresh</a>
+          <button type="button" class="notif-close" @click="showNotifications = false">Hide</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <template x-if="notificationsLoading">
+          <div>
+            <div class="skeleton skel-line"></div>
+            <div class="skeleton skel-line"></div>
+            <div class="skeleton skel-line"></div>
+          </div>
+        </template>
+        <template x-if="!notificationsLoading && notificationsError">
+          <div class="empty">
+            <p x-text="notificationsError"></p>
+          </div>
+        </template>
+        <template x-if="!notificationsLoading && !notificationsError && notifications.length === 0">
+          <div class="empty">
+            <p>No notifications yet.</p>
+          </div>
+        </template>
+        <template x-for="n in notifications" :key="n.id">
+          <div class="notif-item" :class="{ unread: !n.is_read }">
+            <div class="notif-top">
+              <span class="notif-type" x-text="notificationTypeLabel(n.type)"></span>
+              <span class="notif-time" x-text="Utils.relativeTime(n.created_at)"></span>
+            </div>
+            <div class="notif-title" x-text="n.title"></div>
+            <div class="notif-body" x-text="n.body || ''"></div>
+          </div>
+        </template>
+      </div>
     </div>
 
     <!-- Verification banners -->
     <div class="verify-banner unverified" x-show="verificationStatus === 'unverified' && !loading">
-      <span style="font-size:1.5rem;">📋</span>
+      <span style="font-size:1.5rem;">INFO</span>
       <div class="verify-text" style="flex:1;">
-        <h4>Submit your verification documents</h4>
-        <p>Get the 🟡T badge and build trust with students. Upload your qualification certificates to get started.</p>
+        <h4>Request student verification</h4>
+        <p>Get the T badge after 3 students verify you. Send requests to enrolled students.</p>
       </div>
-      <a href="#" class="btn-sm btn-primary">Submit docs →</a>
+      <button type="button" class="btn-sm btn-primary" @click="openVerificationRequestModal()">Request students</button>
     </div>
     <div class="verify-banner pending" x-show="verificationStatus === 'pending' && !loading">
-      <span style="font-size:1.5rem;">â³</span>
+      <span style="font-size:1.5rem;">...</span>
       <div class="verify-text">
-        <h4 style="color:var(--gold);">Verification under review</h4>
-        <p>We're reviewing your documents. This usually takes 1–2 business days.</p>
+        <h4 style="color:var(--gold);">Verification in progress</h4>
+        <p>
+          <span x-text="verifiedCount"></span>/<span x-text="requiredVerificationCount"></span>
+          students verified. Pending: <span x-text="pendingVerificationCount"></span>.
+        </p>
       </div>
+      <button
+        type="button"
+        class="btn-sm btn-primary"
+        x-show="verificationSlotsRemaining > 0"
+        @click="openVerificationRequestModal()"
+      >Request more</button>
     </div>
     <div class="verify-banner verified" x-show="verificationStatus === 'verified' && !loading">
-      <span style="font-size:1.5rem;">✅</span>
+      <span style="font-size:1.5rem;">OK</span>
       <div class="verify-text">
-        <h4 style="color:#059669;">You are a verified teacher 🟡T</h4>
+        <h4 style="color:#059669;">You are a verified teacher</h4>
         <p>Students can see your verification badge on all your classes and posts.</p>
+      </div>
+    </div>
+
+    <div class="modal-overlay" x-show="showVerificationRequestModal" x-transition.opacity @click.self="showVerificationRequestModal=false">
+      <div class="modal" @click.stop>
+        <div class="modal-title" style="font-size:1.2rem;margin-bottom:10px;">Request Student Verification</div>
+        <p style="font-size:.84rem;color:var(--ink-lt);margin-bottom:10px;">
+          Select up to <span x-text="verificationSlotsRemaining"></span> student(s). If a student chooses "Don't know", you can request another student.
+        </p>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+          <input
+            type="text"
+            placeholder="Search by student name or email"
+            x-model="verificationStudentSearch"
+            @input.debounce.300ms="searchVerificationStudents()"
+            style="flex:1;padding:10px;border:1px solid var(--ivory-dk);border-radius:8px;font-size:.84rem;"
+          />
+          <button type="button" class="btn-cancel" style="padding:8px 10px;" @click="searchVerificationStudents()">Search</button>
+        </div>
+        <div style="max-height:260px;overflow:auto;border:1px solid var(--ivory-dk);border-radius:10px;padding:8px;">
+          <template x-if="verificationSearchLoading">
+            <div class="empty" style="padding:12px 8px;"><p>Searching students...</p></div>
+          </template>
+          <template x-if="!verificationSearchLoading && verificationSearchResults.length === 0">
+            <div class="empty" style="padding:12px 8px;"><p>No eligible students available.</p></div>
+          </template>
+          <template x-for="st in verificationSearchResults" :key="st.student_id">
+            <label style="display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px solid var(--ivory-dk);cursor:pointer;">
+              <input
+                type="checkbox"
+                :checked="verificationSelectedStudentIds.includes(String(st.student_id))"
+                @change="toggleVerificationStudent(st.student_id)"
+              />
+              <div style="display:flex;flex-direction:column;gap:2px;">
+                <span style="font-size:.86rem;font-weight:600;" x-text="st.full_name"></span>
+                <span style="font-size:.76rem;color:var(--ink-lt);" x-text="st.email"></span>
+              </div>
+              <span style="margin-left:auto;font-size:.78rem;color:var(--ink-lt);" x-text="'Class ' + (st.grade ?? '-')"></span>
+            </label>
+          </template>
+        </div>
+        <div style="font-size:.8rem;color:#b91c1c;min-height:16px;margin-top:8px;" x-text="verificationError"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" @click="showVerificationRequestModal=false">Cancel</button>
+          <button
+            type="button"
+            class="btn-create"
+            :disabled="verificationSaving || verificationSelectedStudentIds.length === 0"
+            @click="submitVerificationRequests()"
+            x-text="verificationSaving ? 'Sending...' : 'Send request'"
+          ></button>
+        </div>
       </div>
     </div>
 
     <!-- Stats -->
     <div class="stats-row">
       <div class="stat-card">
-        <span class="stat-icon">📹</span>
+        <span class="stat-icon"></span>
         <div class="stat-label">Total classes</div>
         <div class="stat-value" x-text="classes.length"></div>
         <div class="stat-sub">All time</div>
       </div>
       <div class="stat-card">
-        <span class="stat-icon">👥</span>
+        <span class="stat-icon"></span>
         <div class="stat-label">Active students</div>
-        <div class="stat-value" x-text="profile?.student_count ?? '—'"></div>
+        <div class="stat-value" x-text="profile?.student_count ?? ''"></div>
         <div class="stat-sub">Enrolled</div>
       </div>
       <div class="stat-card">
-        <span class="stat-icon">💰</span>
+        <span class="stat-icon"></span>
         <div class="stat-label">This month</div>
-        <div class="stat-value" x-text="earnings ? Utils.formatRupees(earnings.this_month_paise ?? 0) : '—'"></div>
-        <div class="stat-sub">After 20% commission</div>
+        <div class="stat-value" x-text="earnings ? Utils.formatRupees(earnings.this_month_paise ?? 0) : ''"></div>
+        <div class="stat-sub">After tiered commission</div>
       </div>
       <div class="stat-card">
-        <span class="stat-icon">⭐</span>
+        <span class="stat-icon"></span>
         <div class="stat-label">Avg. assessment score</div>
-        <div class="stat-value" x-text="profile?.avg_student_score != null ? Math.round(profile.avg_student_score)+'%' : '—'"></div>
+        <div class="stat-value" x-text="profile?.avg_student_score != null ? Math.round(profile.avg_student_score)+'%' : ''"></div>
         <div class="stat-sub">Across all classes</div>
       </div>
     </div>
@@ -339,7 +1214,7 @@
       <div>
         <div class="card">
           <div class="card-header">
-            <span class="card-title">📹 My classes</span>
+            <span class="card-title">My classes</span>
             <button class="card-link" style="background:none;border:none;cursor:pointer;font-family:inherit;" @click="showCreate=true">+ New class</button>
           </div>
           <div class="card-body">
@@ -354,23 +1229,24 @@
               </div>
             </template>
 
-            <template x-if="!loading && classes.length === 0">
+            <template x-if="!loading && classesWithinWindow().length === 0">
               <div class="empty">
-                <div class="empty-icon">📹</div>
-                <p>No classes yet. Schedule your first class to get started.</p>
+                <div class="empty-icon">CLASS</div>
+                <p>No recent/upcoming classes in the last 48 hours. Schedule your next class to get started.</p>
                 <button class="btn-sm btn-primary" style="margin-top:16px;" @click="showCreate=true">Schedule class</button>
               </div>
             </template>
 
-            <template x-for="cls in classes" :key="cls.id">
+            <template x-for="cls in classesWithinWindow()" :key="cls.id">
               <div class="class-row">
                 <div class="class-dot" :style="`background:${subjectColor(cls.subject)}`"></div>
                 <div class="class-info">
                   <div class="class-name" x-text="cls.title"></div>
                   <div class="class-meta">
                     <span x-text="Utils.formatDateTime(cls.scheduled_at)"></span>
-                    Â· <span x-text="cls.duration_minutes + ' min'"></span>
-                    Â· <span x-text="cls.subject"></span>
+                    | <span x-text="cls.duration_minutes + ' min'"></span>
+                    | <span x-text="cls.subject"></span>
+                    <span x-show="cls.batch_id"> | Batch: <span x-text="batchNameForClass(cls) || 'Linked batch'"></span></span>
                   </div>
                 </div>
                 <span class="status-chip" :class="statusChip(cls.status)" x-text="statusLabel(cls.status)"></span>
@@ -378,7 +1254,9 @@
                   <template x-if="cls.meet_link">
                     <a :href="cls.meet_link" target="_blank" class="action-btn action-teal">Open Meet</a>
                   </template>
-                  <a href="#" class="action-btn action-saf">Manage</a>
+                  <button type="button" class="action-btn action-teal" @click="openAssessmentUpload(cls)">Create assessment</button>
+                  <button type="button" class="action-btn action-teal" @click="openHomeworkCreate(cls)">Homework</button>
+                  <button type="button" class="action-btn action-saf" @click="manageClass(cls)">Manage</button>
                 </div>
               </div>
             </template>
@@ -389,10 +1267,134 @@
       <!-- RIGHT: earnings + recent students -->
       <div>
 
+                <div class="card" id="tuition-requests">
+          <div class="card-header">
+            <span class="card-title">Tution Requests</span>
+            <button class="card-link" style="background:none;border:none;cursor:pointer;font-family:inherit;" @click="fetchIncomingTuitionRequests()">Refresh</button>
+          </div>
+          <div class="card-body">
+            <template x-if="tuitionLoading">
+              <div>
+                <template x-for="i in 3" :key="i">
+                  <div class="request-row">
+                    <div class="skeleton skel-line"></div>
+                    <div class="skeleton skel-line" style="width:60%;"></div>
+                  </div>
+                </template>
+              </div>
+            </template>
+            <template x-if="!tuitionLoading && incomingRequests.length === 0">
+              <div class="empty">
+                <div class="empty-icon">REQ</div>
+                <p>No pending tuition requests.</p>
+              </div>
+            </template>
+            <template x-for="req in incomingRequests" :key="req.id">
+              <div class="request-row">
+                <div class="request-name" x-text="req.counterparty_name"></div>
+                <div class="request-meta">
+                  <span x-text="'Grade: ' + (req.counterparty_grade ?? '-')"></span>
+                  | <span x-text="'Subject: ' + req.subject"></span>
+                  <span x-show="req.batch_name"> | Batch: <span x-text="req.batch_name"></span></span>
+                  <span x-show="req.counterparty_city || req.counterparty_state"> | Location:
+                    <span x-text="(req.counterparty_city || '') + ((req.counterparty_city && req.counterparty_state) ? ', ' : '') + (req.counterparty_state || '')"></span>
+                  </span>
+                  | <span x-text="Utils.relativeTime(req.created_at)"></span>
+                </div>
+                <div class="request-msg" x-show="req.message" x-text="req.message"></div>
+                <div class="request-msg" x-show="req.counterparty_learning_goals" x-text="'Learning goals: ' + req.counterparty_learning_goals"></div>
+                <input class="decline-input" type="text" placeholder="Reason (optional)" x-model="declineReasonById[req.id]" />
+                <div class="request-actions">
+                  <button class="btn-accept" :disabled="actingRequestId === req.id" @click="acceptTuitionRequest(req.id)">Accept</button>
+                  <button class="btn-decline" :disabled="actingRequestId === req.id" @click="declineTuitionRequest(req.id)">Reject</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <div class="card" id="my-students">
+          <div class="card-header">
+            <span class="card-title">My Students</span>
+            <button class="card-link" style="background:none;border:none;cursor:pointer;font-family:inherit;" @click="fetchMyStudents()">Refresh</button>
+          </div>
+          <div class="card-body">
+            <template x-if="studentsLoading">
+              <div>
+                <template x-for="i in 3" :key="i">
+                  <div class="request-row">
+                    <div class="skeleton skel-line"></div>
+                    <div class="skeleton skel-line" style="width:60%;"></div>
+                  </div>
+                </template>
+              </div>
+            </template>
+            <template x-if="!studentsLoading && myStudents.length === 0">
+              <div class="empty">
+                <div class="empty-icon">Students</div>
+                <p>No enrolled students yet.</p>
+              </div>
+            </template>
+            <template x-for="st in myStudents" :key="st.student_id">
+              <div class="request-row">
+                <div class="request-name" x-text="st.full_name"></div>
+                <div class="request-meta">
+                  <span x-text="'Grade: ' + (st.grade ?? '-')"></span>
+                  | <span x-text="st.city || st.state ? ((st.city || '') + (st.city && st.state ? ', ' : '') + (st.state || '')) : 'Location unavailable'"></span>
+                </div>
+                <div class="request-msg" x-text="(st.enrolled_subjects || []).length ? ('Subjects: ' + st.enrolled_subjects.join(', ')) : 'Subjects not set'"></div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <div class="card" id="homework-submissions">
+          <div class="card-header">
+            <span class="card-title">Homework Submissions</span>
+            <button class="card-link" style="background:none;border:none;cursor:pointer;font-family:inherit;" @click="fetchHomeworkSubmissions()">Refresh</button>
+          </div>
+          <div class="card-body">
+            <template x-if="homeworkSubmissionsLoading">
+              <div>
+                <template x-for="i in 3" :key="i">
+                  <div class="request-row">
+                    <div class="skeleton skel-line"></div>
+                    <div class="skeleton skel-line" style="width:60%;"></div>
+                  </div>
+                </template>
+              </div>
+            </template>
+            <template x-if="!homeworkSubmissionsLoading && homeworkSubmissions.length === 0">
+              <div class="empty">
+                <p>No homework submissions yet.</p>
+              </div>
+            </template>
+            <template x-for="sub in homeworkSubmissions" :key="sub.id">
+              <div class="request-row">
+                <div class="request-name" x-text="sub.student_name"></div>
+                <div class="request-meta">
+                  <span x-text="sub.class_title"></span>
+                  <span> | </span>
+                  <span x-text="Utils.relativeTime(sub.submitted_at)"></span>
+                </div>
+                <div class="request-msg" x-show="sub.submission_text" x-text="sub.submission_text"></div>
+                <div class="request-meta" x-show="sub.feedback_text || sub.feedback_score != null">
+                  Feedback:
+                  <span x-text="sub.feedback_text || ''"></span>
+                  <span x-show="sub.feedback_score != null"> | Score: <span x-text="sub.feedback_score"></span></span>
+                </div>
+                <div class="request-actions">
+                  <button class="btn-accept" @click="openFeedbackModal(sub)">Feedback</button>
+                  <button class="btn-decline" x-show="sub.has_file" @click="downloadSubmissionFile(sub.id)">Download file</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
         <!-- Earnings breakdown -->
         <div class="card">
           <div class="card-header">
-            <span class="card-title">💰 Earnings</span>
+            <span class="card-title">Earnings</span>
             <a href="#" class="card-link">Full report</a>
           </div>
           <div class="card-body">
@@ -414,7 +1416,7 @@
                   <span style="font-weight:600;" x-text="Utils.formatRupees(earnings.total_paise ?? 0)"></span>
                 </div>
                 <div style="margin-top:14px;padding:12px;background:var(--ivory);border-radius:10px;font-size:.8rem;color:var(--ink-lt);">
-                  Platform takes 20% commission. Payouts processed monthly to your registered bank account.
+                  Platform commission is tiered (20% → 15% → 10%) based on total revenue. Payouts are processed monthly.
                 </div>
               </div>
             </template>
@@ -424,7 +1426,7 @@
         <!-- Profile completeness -->
         <div class="card">
           <div class="card-header">
-            <span class="card-title">👤 Profile</span>
+            <span class="card-title">Profile</span>
             <a href="#" class="card-link">Edit</a>
           </div>
           <div class="card-body">
@@ -446,14 +1448,325 @@
       </div>
     </div>
 
-    <!-- ── Create class modal ── -->
+    <!--  Feedback modal  -->
+    <div class="modal-overlay" x-show="showFeedbackModal" x-transition.opacity @click.self="showFeedbackModal = false">
+      <div class="modal" @click.stop>
+        <h2 class="modal-title">Provide Feedback</h2>
+        <div class="field">
+          <label>Student</label>
+          <input type="text" :value="selectedSubmissionForFeedback?.student_name || ''" disabled />
+        </div>
+        <div class="field">
+          <label>Homework class</label>
+          <input type="text" :value="selectedSubmissionForFeedback?.class_title || ''" disabled />
+        </div>
+        <div class="field">
+          <label>Feedback text</label>
+          <textarea x-model="feedbackTextInput" placeholder="Write feedback for the student"></textarea>
+        </div>
+        <div class="field">
+          <label>Score (0-100, optional)</label>
+          <input type="number" min="0" max="100" x-model="feedbackScoreInput" />
+        </div>
+        <div style="font-size:.8rem;color:#b91c1c;min-height:16px;" x-text="feedbackError"></div>
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="showFeedbackModal = false">Close</button>
+          <button class="btn-create" @click="submitFeedback()" :disabled="feedbackSaving">
+            <span x-show="!feedbackSaving">Save feedback</span>
+            <span x-show="feedbackSaving" class="spinner"></span>
+          </button>
+          </div>
+        </div>
+
+        <div class="card" id="batch-manager">
+          <div class="card-header">
+            <span class="card-title">Batch Manager</span>
+            <button class="card-link" style="background:none;border:none;cursor:pointer;font-family:inherit;" @click="fetchBatchDataForGrade(activeBatchGrade)">Refresh</button>
+          </div>
+          <div class="card-body">
+            <div class="class-tabs">
+              <template x-for="grade in [8,9,10]" :key="grade">
+                <button
+                  type="button"
+                  class="class-tab"
+                  :class="{ active: activeBatchGrade === grade }"
+                  @click="setActiveBatchGrade(grade)"
+                  x-text="classTabLabel(grade)"
+                ></button>
+              </template>
+            </div>
+
+            <template x-if="batchError">
+              <div class="request-msg" x-text="batchError"></div>
+            </template>
+
+            <div class="batch-create-form">
+              <input type="text" placeholder="Batch name (e.g. Algebra A)" x-model="batchCreateName" />
+              <input type="text" placeholder="Subject (optional)" x-model="batchCreateSubject" />
+              <input class="wide" type="text" placeholder="Class timing (e.g. Mon/Wed/Fri 7:00 PM)" x-model="batchCreateTiming" />
+              <textarea class="wide" placeholder="Description (optional)" x-model="batchCreateDescription"></textarea>
+              <button class="btn-accept" :disabled="batchSaving" @click="createBatchForActiveGrade()">
+                <span x-show="!batchSaving">Create batch</span>
+                <span x-show="batchSaving" class="spinner"></span>
+              </button>
+            </div>
+
+            <template x-if="batchLoadingByGrade[activeBatchGrade]">
+              <div>
+                <div class="skeleton skel-line"></div>
+                <div class="skeleton skel-line"></div>
+              </div>
+            </template>
+
+            <template x-if="!batchLoadingByGrade[activeBatchGrade] && activeBatches.length === 0">
+              <div class="empty">
+                <p x-text="'No batches in Class ' + activeBatchGrade + ' yet.'"></p>
+              </div>
+            </template>
+
+            <div class="batch-stack">
+              <template x-for="batch in activeBatches" :key="batch.id">
+                <div class="batch-item">
+                  <div class="batch-item-head">
+                    <div class="batch-item-name" x-text="batch.name"></div>
+                    <button class="btn-accept" @click="scheduleClassFromBatch(batch)">Schedule class</button>
+                  </div>
+                  <div class="batch-members">
+                    <span x-text="'Members: ' + (batch.member_count || 0)"></span>
+                    <span x-show="batch.subject"> | Subject: <span x-text="batch.subject"></span></span>
+                    <span x-show="batch.class_timing"> | Timing: <span x-text="batch.class_timing"></span></span>
+                  </div>
+                  <div class="batch-members-list" x-text="(batch.members || []).length ? batch.members.map(m => m.full_name).join(', ') : 'No students yet.'"></div>
+                  <div class="batch-row">
+                    <select
+                      :value="selectedStudentIdForBatch(batch.id)"
+                      @change="updateBatchStudentChoice(batch.id, $event.target.value)"
+                    >
+                      <option value="">Add enrolled student...</option>
+                      <template x-for="student in eligibleStudentsForBatch(batch)" :key="student.student_id">
+                        <option :value="student.student_id" x-text="student.full_name + ' (Class ' + (student.grade ?? '-') + ')'"></option>
+                      </template>
+                    </select>
+                    <button class="btn-accept" @click="addStudentToBatch(batch.id)">Add student</button>
+                  </div>
+                  <div class="batch-settings">
+                    <label class="full" style="font-size:.78rem;color:var(--ink-lt);display:flex;align-items:center;gap:8px;">
+                      <input type="checkbox" style="width:auto;" :checked="batchSettings(batch).student_selection_enabled"
+                        @change="batchSettings(batch).student_selection_enabled = !!$event.target.checked" />
+                      Show this batch to students
+                    </label>
+                    <input type="number" min="1" placeholder="Max students (empty = unlimited)"
+                      :value="batchSettings(batch).max_students"
+                      @input="batchSettings(batch).max_students = $event.target.value" />
+                    <input class="full" type="text" placeholder="Class days e.g. monday, wednesday, friday"
+                      :value="batchSettings(batch).class_days_csv"
+                      @input="batchSettings(batch).class_days_csv = $event.target.value" />
+                    <button class="btn-accept" @click="saveBatchSettings(batch)">Save settings</button>
+                  </div>
+                  <div class="batch-days-row">
+                    <select :value="batchCancelDayById[batch.id] || ''" @change="batchCancelDayById = { ...batchCancelDayById, [batch.id]: $event.target.value }">
+                      <option value="">Select day to cancel...</option>
+                      <template x-for="d in (batch.class_days || [])" :key="d">
+                        <option :value="d" x-text="d"></option>
+                      </template>
+                    </select>
+                    <input type="text" placeholder="Cancellation note (optional)"
+                      :value="batchCancelDayNoteById[batch.id] || ''"
+                      @input="batchCancelDayNoteById = { ...batchCancelDayNoteById, [batch.id]: $event.target.value }" />
+                    <button class="btn-decline" @click="cancelBatchDay(batch)">Cancel day</button>
+                  </div>
+                  <div class="batch-class-list">
+                    <template x-if="classesForBatch(batch.id).length === 0">
+                      <div class="batch-class-meta">No classes scheduled for this batch.</div>
+                    </template>
+                    <template x-for="cls in classesForBatch(batch.id)" :key="cls.id">
+                      <div class="batch-class-item">
+                        <div>
+                          <div class="request-name" x-text="cls.title"></div>
+                          <div class="batch-class-meta" x-text="Utils.formatDateTime(cls.scheduled_at) + ' | ' + cls.duration_minutes + ' min'"></div>
+                        </div>
+                        <button class="btn-accept" @click="openRescheduleFromBatch(batch, cls)">Reschedule</button>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    <!--  Create homework  -->
+    <div class="modal-overlay" x-show="showHomeworkCreate" x-transition.opacity @click.self="showHomeworkCreate = false">
+      <div class="modal" @click.stop>
+        <h2 class="modal-title">Create homework</h2>
+        <div class="field">
+          <label>Class</label>
+          <input type="text" :value="selectedClassForHomework?.title || ''" disabled />
+        </div>
+        <div class="field">
+          <label>Homework title</label>
+          <input type="text" x-model="homeworkTitle" placeholder="e.g. Linear equations worksheet" />
+        </div>
+        <div class="field">
+          <label>Description / instructions</label>
+          <textarea x-model="homeworkDescription" placeholder="Write the homework instructions here"></textarea>
+        </div>
+        <div class="field">
+          <label>Due date (optional)</label>
+          <input type="datetime-local" x-model="homeworkDueAt" />
+        </div>
+        <div class="field">
+          <label>Upload file (optional)</label>
+          <input type="file" accept=".pdf,.docx,image/*" @change="handleHomeworkFile($event)" />
+          <div style="font-size:.78rem;color:var(--ink-lt);margin-top:6px;">Allowed: PDF, DOCX, images. Max size: 1 MB.</div>
+        </div>
+        <div style="font-size:.8rem;color:#b91c1c;min-height:18px;" x-text="homeworkError"></div>
+        <div style="font-size:.8rem;color:#047857;min-height:18px;" x-text="homeworkSuccess"></div>
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="showHomeworkCreate = false">Close</button>
+          <button class="btn-create" @click="createHomeworkForClass()" :disabled="homeworkSaving">
+            <span x-show="!homeworkSaving">Save homework</span>
+            <span x-show="homeworkSaving" class="spinner"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!--  Create assessment from notes/transcript  -->
+    <div class="modal-overlay" x-show="showAssessmentUpload" x-transition.opacity @click.self="showAssessmentUpload = false">
+      <div class="modal" @click.stop>
+        <h2 class="modal-title">Create assessment</h2>
+        <p style="font-size:.82rem;color:var(--ink-lt);margin-top:-8px;margin-bottom:14px;">
+          Upload class notes/transcript (.txt, .md, .docx). Diya will generate 10 questions (8 MCQ + 2 subjective).
+        </p>
+        <div class="field">
+          <label>Class</label>
+          <input type="text" :value="selectedClassForAssessment?.title || ''" disabled />
+        </div>
+        <div class="field">
+          <label>Upload notes/transcript</label>
+          <input type="file" accept=".txt,.md,.docx" @change="handleAssessmentFile($event)" />
+        </div>
+        <div style="font-size:.8rem;color:#b91c1c;min-height:16px;" x-text="assessmentGenError"></div>
+
+        <template x-if="assessmentPreview">
+          <div style="margin:8px 0 10px;padding:10px;border:1px solid var(--ivory-dk);border-radius:10px;background:#fff;">
+            <div style="font-size:.85rem;font-weight:700;">Assessment generated</div>
+            <div style="font-size:.8rem;color:var(--ink-lt);">
+              <span x-text="'Questions: ' + (assessmentPreview.total_questions || 0)"></span>
+              <span> | </span>
+              <span x-text="'MCQ: ' + (assessmentPreview.mcq_count || 0)"></span>
+              <span> | </span>
+              <span x-text="'Subjective: ' + (assessmentPreview.subjective_count || 0)"></span>
+            </div>
+          </div>
+        </template>
+
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="showAssessmentUpload = false">Close</button>
+          <button class="btn-create" @click="generateClassAssessmentFromUpload()" :disabled="assessmentGenerating">
+            <span x-show="!assessmentGenerating">Generate</span>
+            <span x-show="assessmentGenerating" class="spinner"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" x-show="showReschedule" x-transition.opacity @click.self="showReschedule = false">
+      <div class="modal" @click.stop>
+        <h2 class="modal-title">Reschedule class</h2>
+        <div class="field">
+          <label>Batch</label>
+          <input type="text" :value="selectedBatchForReschedule?.name || ''" disabled />
+        </div>
+        <div class="field">
+          <label>Class</label>
+          <input type="text" :value="selectedClassForReschedule?.title || ''" disabled />
+        </div>
+        <div class="field">
+          <label>New date & time *</label>
+          <input type="datetime-local" x-model="rescheduleClassAt" />
+        </div>
+        <div class="field">
+          <label>Duration (mins)</label>
+          <input type="number" min="15" max="180" x-model.number="rescheduleDuration" />
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="showReschedule = false">Close</button>
+          <button class="btn-cancel" style="background:#fee2e2;color:#b91c1c;" @click="cancelClassFromManage()" :disabled="rescheduleSaving">
+            Cancel class
+          </button>
+          <button class="btn-create" @click="rescheduleClassFromBatch()" :disabled="rescheduleSaving">
+            <span x-show="!rescheduleSaving">Save</span>
+            <span x-show="rescheduleSaving" class="spinner"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" x-show="showBatchCreate" x-transition.opacity @click.self="showBatchCreate = false">
+      <div class="modal" @click.stop>
+        <h2 class="modal-title">Create a new batch</h2>
+        <div class="field">
+          <label>Class *</label>
+          <select x-model.number="batchCreateGrade">
+            <option :value="8">Class 8</option>
+            <option :value="9">Class 9</option>
+            <option :value="10">Class 10</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Batch name *</label>
+          <input type="text" placeholder="e.g. Algebra A" x-model="batchCreateName" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Subject</label>
+            <input type="text" placeholder="e.g. Mathematics" x-model="batchCreateSubject" />
+          </div>
+          <div class="field">
+            <label>Class timing</label>
+            <input type="text" placeholder="e.g. Mon/Wed/Fri 7:00 PM" x-model="batchCreateTiming" />
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Max students</label>
+            <input type="number" min="1" placeholder="Leave empty = unlimited" x-model.number="batchCreateMaxStudents" />
+          </div>
+          <div class="field">
+            <label>Class days</label>
+            <input type="text" placeholder="monday, wednesday, friday" x-model="batchCreateDaysCsv" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Description</label>
+          <textarea placeholder="Optional details for this batch" x-model="batchCreateDescription"></textarea>
+        </div>
+        <div class="field" style="display:flex;align-items:center;gap:8px;">
+          <input id="batch-visible-toggle" type="checkbox" style="width:auto;" x-model="batchCreateVisibleToStudents" />
+          <label for="batch-visible-toggle" style="margin:0;">Show this batch to students in Find Teacher</label>
+        </div>
+        <div style="font-size:.82rem;color:#b91c1c;min-height:16px;" x-text="batchError"></div>
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="showBatchCreate = false">Cancel</button>
+          <button class="btn-create" @click="createBatchForActiveGrade()" :disabled="batchSaving">
+            <span x-show="!batchSaving">Create batch</span>
+            <span x-show="batchSaving" class="spinner"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!--  Create class modal  -->
     <div class="modal-overlay" x-show="showCreate" x-transition.opacity @click.self="showCreate = false">
       <div class="modal" @click.stop>
         <h2 class="modal-title">Schedule a new class</h2>
 
         <div class="field">
           <label>Class title *</label>
-          <input type="text" placeholder="e.g. Algebra — Chapter 7: Linear Equations" x-model="newClass.title" />
+          <input type="text" placeholder="e.g. Algebra - Chapter 7: Linear Equations" x-model="newClass.title" />
         </div>
 
         <div class="field-row">
@@ -479,12 +1792,22 @@
         </div>
 
         <div class="field">
+          <label>Batch (optional)</label>
+          <select x-model="newClass.batch_id">
+            <option value="">All enrolled students</option>
+            <template x-for="batch in allBatches" :key="batch.id">
+              <option :value="batch.id" x-text="batch.name + ' (Class ' + (batch.grade_level ?? '-') + ')'"></option>
+            </template>
+          </select>
+        </div>
+
+        <div class="field">
           <label>Description <small style="font-weight:400;color:var(--ink-lt)">(optional)</small></label>
           <textarea placeholder="What will you cover in this class?" x-model="newClass.description"></textarea>
         </div>
 
         <p style="font-size:.8rem;color:var(--ink-lt);margin-top:-4px;margin-bottom:16px;">
-          💡 After creating the class, paste your Google Meet link from Google Calendar using the Manage button.
+           After creating the class, paste your Google Meet link from Google Calendar using the Manage button.
         </p>
 
         <div class="modal-actions">
@@ -501,3 +1824,15 @@
 
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+

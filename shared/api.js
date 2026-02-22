@@ -2,7 +2,11 @@
 // Central API layer for TamGam frontend
 // All HTTP calls go through here — handles auth headers, token refresh, errors
 
-const API_BASE = window.TAMGAM_API_BASE || 'http://localhost:8000/api/v1';
+const API_BASE =
+  window.TAMGAM_API_BASE ||
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:8000/api/v1'
+    : '/api/v1');
 
 // ── Token Management ──────────────────────────────────────────────────────────
 
@@ -31,16 +35,27 @@ const TokenStore = {
 let _refreshing = null; // singleton refresh promise
 
 async function _request(method, path, body = null, opts = {}) {
-  const headers = { 'Content-Type': 'application/json' };
+  const isFormData = (typeof FormData !== 'undefined') && (body instanceof FormData);
+  const headers = isFormData ? {} : { 'Content-Type': 'application/json' };
   const token = TokenStore.getAccess();
   if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (opts.headers) Object.assign(headers, opts.headers);
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : null,
-    ...opts,
-  });
+  let res;
+  const fullUrl = `${API_BASE}${path}`;
+  try {
+    res = await fetch(fullUrl, {
+      method,
+      headers,
+      body: body ? (isFormData ? body : JSON.stringify(body)) : null,
+      ...opts,
+    });
+  } catch (e) {
+    const hint = `Network error calling ${fullUrl}. Check API server, CORS, mixed-content (http/https), and file:// origin.`;
+    const err = new Error(`${e?.message || 'Fetch failed'}. ${hint}`);
+    err.cause = e;
+    throw err;
+  }
 
   // Auto-refresh on 401
   if (res.status === 401 && TokenStore.getRefresh() && !opts._retried) {
@@ -54,9 +69,17 @@ async function _request(method, path, body = null, opts = {}) {
 
   if (!res.ok) {
     let detail = `HTTP ${res.status}`;
-    try { const j = await res.json(); detail = j.detail || j.message || detail; } catch {}
+    let payload = null;
+    try {
+      const j = await res.json();
+      payload = j?.detail ?? j;
+      if (typeof payload === 'string') detail = payload;
+      else if (payload && typeof payload === 'object') detail = payload.message || j.message || detail;
+      else detail = j?.message || detail;
+    } catch {}
     const err = new Error(detail);
     err.status = res.status;
+    err.data = payload;
     throw err;
   }
 
@@ -119,12 +142,18 @@ const Auth = {
 
 // ── Students ──────────────────────────────────────────────────────────────────
 
+const Users = {
+  getMe:           ()           => get('/users/me'),
+  updateMe:        (body)       => patch('/users/me', body),
+};
+
 const Students = {
   getMe:           ()           => get('/students/me'),
   updateMe:        (body)       => patch('/students/me', body),
   getEnrollments:  ()           => get('/students/me/enrollments'),
   getBatches:      ()           => get('/students/me/batches'),
   getPublic:       (id)         => get(`/students/${id}/public`),
+  unenroll:        (enrollment_id) => del(`/students/me/enroll/${enrollment_id}`),
 };
 
 // ── Teachers ──────────────────────────────────────────────────────────────────
@@ -132,10 +161,12 @@ const Students = {
 const Teachers = {
   getMe:           ()           => get('/teachers/me'),
   updateMe:        (body)       => patch('/teachers/me', body),
-  list:            ()           => get('/teachers/'),
+  list:            (params={})  => get(`/teachers/?${new URLSearchParams(params)}`),
   getPublic:       (id)         => get(`/teachers/${id}/public`),
   getEarnings:     ()           => get('/teachers/me/earnings'),
   getVerification: ()           => get('/teachers/me/verification'),
+  requestVerification: (student_ids=[]) => post('/teachers/me/verification/requests', { student_ids }),
+  searchVerificationStudents: (q='', limit=20) => get(`/teachers/me/verification/students/search?${new URLSearchParams({ q, limit: String(limit) })}`),
 };
 
 // ── Classes ───────────────────────────────────────────────────────────────────
@@ -147,6 +178,14 @@ const Classes = {
   update:          (id, body)  => patch(`/classes/${id}`, body),
   getUpcoming:     ()          => get('/classes/upcoming'),
   getMine:         ()          => get('/classes/mine'),
+  listBatches:     (params={}) => get(`/classes/batches?${new URLSearchParams(params)}`),
+  createBatch:     (body)      => post('/classes/batches', body),
+  addBatchStudents:(batch_id, student_ids=[]) => post(`/classes/batches/${batch_id}/students`, { student_ids }),
+  listBatchEligibleStudents: (params={}) => get(`/classes/batches/enrolled-students?${new URLSearchParams(params)}`),
+  updateBatch:     (batch_id, body) => patch(`/classes/batches/${batch_id}`, body),
+  cancelBatchDay:  (batch_id, day, note=null) => post(`/classes/batches/${batch_id}/cancel-day`, { day, note }),
+  deleteBatch:     (batch_id) => del(`/classes/batches/${batch_id}`),
+  cancelClass:     (class_id) => del(`/classes/${class_id}`),
 };
 
 // ── Subscriptions ─────────────────────────────────────────────────────────────
@@ -154,7 +193,7 @@ const Classes = {
 const Subscriptions = {
   list:            ()           => get('/subscriptions/plans'),
   getMine:         ()           => get('/subscriptions/me'),
-  createOrder: (plan_id, billing='monthly') => post('/subscriptions/create', { plan_id, billing }),
+  createOrder: (plan_id, billing='monthly') => post('/subscriptions/create', { plan_id, billing_cycle: billing }),
   cancel:          ()           => post('/subscriptions/cancel'),
 };
 
@@ -172,15 +211,32 @@ const Notes = {
   getForClass:     (class_id)   => get(`/notes/class/${class_id}`),
   get:             (id)         => get(`/notes/${id}`),
   generate:        (class_id)   => post(`/notes/class/${class_id}/generate`),
+  generateStudent: (payload={}, chapterFile=null, examQuestionsFile=null) => {
+    const form = new FormData();
+    if (payload.subject != null) form.append('subject', payload.subject);
+    if (payload.standard != null) form.append('standard', payload.standard);
+    if (payload.chapter != null) form.append('chapter', payload.chapter);
+    if (chapterFile) form.append('chapter_file', chapterFile);
+    if (examQuestionsFile) form.append('exam_questions_file', examQuestionsFile);
+    return post('/notes/student/generate', form);
+  },
 };
 
 // ── Assessments ───────────────────────────────────────────────────────────────
 
 const Assessments = {
-  getForClass:     (class_id)   => get(`/assessments/class/${class_id}`),
-  start:           (class_id)   => post(`/assessments/class/${class_id}/start`),
-  submit:          (id, answers) => post(`/assessments/${id}/submit`, { answers }),
-  getResult:       (id)         => get(`/assessments/${id}/result`),
+  getForClass:       (class_id)         => get(`/assessments/${class_id}`),
+  generateForClass:  (class_id)         => post(`/assessments/${class_id}/generate`, {}),
+  submitForClass:    (class_id, answers)=> post(`/assessments/${class_id}/submit`, { answers }),
+  provideFeedback:   (assessment_id, payload={}) => patch(`/assessments/submissions/${assessment_id}/feedback`, payload),
+  generateProfile:   ()                 => post('/assessments/profile/generate', {}),
+  submitProfile:     (attempt_token, answers) =>
+    post('/assessments/profile/submit', { attempt_token, answers }),
+  createFromUpload:  (class_id, file)   => {
+    const form = new FormData();
+    form.append('file', file);
+    return post(`/assessments/${class_id}/generate-from-upload`, form);
+  },
   getHistory:      ()           => get('/assessments/me/history'),
 };
 
@@ -213,6 +269,7 @@ const Notifications = {
   markRead:        (id)         => patch(`/notifications/${id}/read`),
   markAllRead:     ()           => patch('/notifications/read-all'),
   getUnreadCount:  ()           => get('/notifications/unread-count'),
+  respondTeacherVerification: (id, decision) => post(`/notifications/${id}/teacher-verification-response?decision=${encodeURIComponent(decision)}`, {}),
 };
 
 // ── Tuition Requests ──────────────────────────────────────────────────────────
@@ -222,9 +279,86 @@ const TuitionRequests = {
   listMine:     (status) => get(`/tuition-requests/me${status ? '?status='+status : ''}`),
   cancel:       (id)    => del(`/tuition-requests/${id}`),
   listIncoming: (status) => get(`/tuition-requests/incoming${status ? '?status='+status : ''}`),
+  listMyStudents: ()     => get('/tuition-requests/my-students'),
   accept:       (id)    => patch(`/tuition-requests/${id}/accept`, {}),
   decline:      (id, reason) => patch(`/tuition-requests/${id}/decline`, { decline_reason: reason }),
   searchStudents: (params={}) => get(`/tuition-requests/students/search?${new URLSearchParams(params)}`),
+};
+
+// ── Homework ───────────────────────────────────────────────────────────────────
+
+const Homework = {
+  listStudentFeed: () => get('/homework/me/student-feed'),
+  listTeacher:     () => get('/homework/me/teacher'),
+  listTeacherSubmissions: () => get('/homework/me/teacher/submissions'),
+  createForClass:  (class_id, payload={}, file=null) => {
+    const form = new FormData();
+    if (payload.title != null) form.append('title', payload.title);
+    if (payload.description != null) form.append('description', payload.description);
+    if (payload.due_at != null) form.append('due_at', payload.due_at);
+    if (file) form.append('file', file);
+    return post(`/homework/classes/${class_id}`, form);
+  },
+  submitHomework: (homework_id, payload={}, file=null) => {
+    const form = new FormData();
+    if (payload.submission_text != null) form.append('submission_text', payload.submission_text);
+    if (file) form.append('file', file);
+    return post(`/homework/${homework_id}/submit`, form);
+  },
+  provideFeedback: (submission_id, payload={}) => {
+    const form = new FormData();
+    if (payload.feedback_text != null) form.append('feedback_text', payload.feedback_text);
+    if (payload.feedback_score != null && payload.feedback_score !== '') form.append('feedback_score', payload.feedback_score);
+    return patch(`/homework/submissions/${submission_id}/feedback`, form);
+  },
+  async downloadFile(homework_id) {
+    const headers = {};
+    const token = TokenStore.getAccess();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE}/homework/${homework_id}/download`, { method: 'GET', headers });
+    if (!res.ok) {
+      let msg = `HTTP ${res.status}`;
+      try { const j = await res.json(); msg = (j?.detail?.message || j?.detail || j?.message || msg); } catch {}
+      throw new Error(msg);
+    }
+    const blob = await res.blob();
+    const cd = res.headers.get('content-disposition') || '';
+    const m = cd.match(/filename=\"?([^\";]+)\"?/i);
+    const filename = m?.[1] || 'homework_file';
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    return true;
+  },
+  async downloadSubmissionFile(submission_id) {
+    const headers = {};
+    const token = TokenStore.getAccess();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE}/homework/submissions/${submission_id}/download`, { method: 'GET', headers });
+    if (!res.ok) {
+      let msg = `HTTP ${res.status}`;
+      try { const j = await res.json(); msg = (j?.detail?.message || j?.detail || j?.message || msg); } catch {}
+      throw new Error(msg);
+    }
+    const blob = await res.blob();
+    const cd = res.headers.get('content-disposition') || '';
+    const m = cd.match(/filename=\"?([^\";]+)\"?/i);
+    const filename = m?.[1] || 'submission_file';
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    return true;
+  },
 };
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
@@ -246,9 +380,9 @@ const Admin = {
 // ── Export ────────────────────────────────────────────────────────────────────
 
 window.TG = {
-  TokenStore, Auth,
+  TokenStore, Auth, Users,
   Students, Teachers, Classes,
   Subscriptions, Transcripts, Notes,
   Assessments, Tutor, Community,
-  Notifications, Admin, TuitionRequests,
+  Notifications, Admin, TuitionRequests, Homework,
 };

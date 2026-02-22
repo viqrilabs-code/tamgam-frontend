@@ -4,9 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>My Profile • TamGam</title>
-  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <script defer src="/shared/api.js"></script>
-  <script defer src="/shared/auth.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js" defer></script>
+  <script src="/shared/api.js"></script>
+  <script src="/shared/auth.js"></script>
+  <script src="/shared/branding.js"></script>
   <style>
     :root {
       --saffron:#E8640C;--teal:#0D5C63;--cream:#FFFCF6;--ink:#1F2937;--ink-lt:#6B7280;--ivory-dk:#E9E2D7;
@@ -32,10 +33,30 @@
     .actions { margin-top:18px; display:flex; gap:10px; align-items:center; }
     .btn { border:0; border-radius:10px; padding:10px 16px; font-weight:700; cursor:pointer; }
     .btn-primary { background:var(--teal); color:#fff; }
+    .btn-saffron { background:var(--saffron); color:#fff; }
     .badge { display:inline-flex; border-radius:999px; padding:4px 10px; font-size:.78rem; font-weight:700; background:#eef5f5; color:var(--teal); }
     .msg { font-size:.86rem; }
     .ok { color:#047857; }
     .err { color:#b91c1c; }
+    .cta-card {
+      margin-bottom:14px;
+      background:#fff;
+      border:1px solid var(--ivory-dk);
+      border-radius:14px;
+      padding:14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .cta-title { font-size:.96rem; font-weight:700; color:var(--ink); }
+    .cta-sub { font-size:.84rem; color:var(--ink-lt); margin-top:3px; }
+    .modal-overlay { position:fixed; inset:0; background:rgba(31,41,55,.5); display:flex; align-items:center; justify-content:center; padding:16px; z-index:100; }
+    .modal { width:min(780px,100%); max-height:90vh; overflow:auto; background:#fff; border-radius:14px; border:1px solid var(--ivory-dk); padding:18px; }
+    .q-card { border:1px solid var(--ivory-dk); border-radius:10px; padding:12px; margin-top:10px; }
+    .opt { display:block; margin-top:6px; font-size:.92rem; }
+    .meta { font-size:.8rem; color:var(--ink-lt); margin-top:4px; }
     @media (max-width:700px){ .grid{grid-template-columns:1fr;} }
   </style>
 </head>
@@ -49,13 +70,32 @@
       <a class="back" :href="isTeacher ? '/teacher-dashboard.html' : '/dashboard.html'">← Back</a>
     </div>
 
+    <section class="cta-card" x-show="!isTeacher">
+      <div>
+        <div class="cta-title">Need a tutor for your class?</div>
+        <div class="cta-sub">Explore verified teachers, check batches, and send tuition requests.</div>
+      </div>
+      <a class="btn btn-saffron" href="/find-teachers.html" style="text-decoration:none;display:inline-flex;align-items:center;">Find Teacher</a>
+    </section>
+
     <section class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
         <div>
           <div style="font-size:1.05rem;font-weight:700;">Your details</div>
           <div class="muted" x-text="loaded ? 'If details are missing, fill and save your profile.' : 'Loading profile…'"></div>
         </div>
-        <span class="badge" x-text="isTeacher ? 'Teacher profile' : 'Student profile'"></span>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span class="badge" x-text="isTeacher ? 'Teacher profile' : 'Student profile'"></span>
+          <button
+            x-show="!isTeacher"
+            type="button"
+            class="btn btn-saffron"
+            style="padding:8px 12px;font-size:.84rem;"
+            @click="openAssessment()"
+            :disabled="assessmentLoading"
+            x-text="assessmentLoading ? 'Preparing…' : 'Take assessment'"
+          ></button>
+        </div>
       </div>
 
       <form class="grid" @submit.prevent="save()">
@@ -141,7 +181,7 @@
               <option value="">Select learning style</option>
               <option value="visual">Visual</option>
               <option value="auditory">Auditory</option>
-              <option value="reading_writing">Reading/Writing</option>
+              <option value="reading">Reading/Writing</option>
               <option value="kinesthetic">Kinesthetic</option>
               <option value="mixed">Mixed</option>
             </select>
@@ -193,10 +233,9 @@
             <label>Teaching style</label>
             <select x-model="form.teaching_style">
               <option value="">Select teaching style</option>
-              <option value="conceptual">Conceptual</option>
-              <option value="exam_oriented">Exam oriented</option>
+              <option value="lecture">Lecture</option>
               <option value="interactive">Interactive</option>
-              <option value="story_based">Story based</option>
+              <option value="practical">Practical</option>
               <option value="mixed">Mixed</option>
             </select>
           </div>
@@ -218,9 +257,9 @@
             <label>Class note tone</label>
             <select x-model="form.class_note_tone">
               <option value="">Select tone</option>
-              <option value="simple">Simple</option>
+              <option value="concise">Concise</option>
               <option value="exam_focused">Exam focused</option>
-              <option value="encouraging">Encouraging</option>
+              <option value="conceptual">Conceptual</option>
               <option value="detailed">Detailed</option>
             </select>
           </div>
@@ -239,6 +278,57 @@
         </div>
       </form>
     </section>
+
+    <div class="modal-overlay" x-show="showAssessmentModal" x-transition.opacity @click.self="showAssessmentModal=false">
+      <div class="modal" @click.stop>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+          <div>
+            <div style="font-weight:800;font-size:1.05rem;">Adaptive profile assessment</div>
+            <div class="muted">10 questions: 2 below your grade, 6 at your grade, 2 above.</div>
+          </div>
+          <button type="button" class="btn" style="background:#eef2f7;color:#1f2937;padding:8px 10px;" @click="showAssessmentModal=false">Close</button>
+        </div>
+
+        <template x-if="assessmentError">
+          <div class="err" style="margin-top:10px;" x-text="assessmentError"></div>
+        </template>
+
+        <template x-if="assessmentResult">
+          <div style="margin-top:12px;border:1px solid var(--ivory-dk);border-radius:10px;padding:12px;">
+            <div style="font-weight:700;">Result: <span x-text="assessmentResult.score + '%'"></span></div>
+            <div class="meta">Correct: <span x-text="assessmentResult.correct_count"></span>/<span x-text="assessmentResult.total_questions"></span> | Standard: <span x-text="assessmentResult.grade_standard"></span> | Level: <span x-text="assessmentResult.understanding_level"></span></div>
+            <div class="meta">Strengths: <span x-text="(assessmentResult.strengths || []).join(', ') || 'n/a'"></span></div>
+            <div class="meta">Improvement areas: <span x-text="(assessmentResult.improvement_areas || []).join(', ') || 'n/a'"></span></div>
+          </div>
+        </template>
+
+        <template x-if="assessmentQuestions.length > 0 && !assessmentResult">
+          <div style="margin-top:8px;">
+            <template x-for="q in assessmentQuestions" :key="q.id">
+              <div class="q-card">
+                <div style="font-weight:700;" x-text="q.id + '. ' + q.question"></div>
+                <div class="meta">
+                  <span x-text="'Band: ' + q.difficulty_band"></span>
+                  <span> | </span>
+                  <span x-text="'Topic: ' + q.topic"></span>
+                </div>
+                <template x-for="opt in q.options" :key="opt.key">
+                  <label class="opt">
+                    <input type="radio" :name="'q-'+q.id" :value="opt.key" x-model="assessmentAnswers[q.id]">
+                    <span x-text="opt.key + '. ' + opt.text"></span>
+                  </label>
+                </template>
+              </div>
+            </template>
+
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px;">
+              <button type="button" class="btn" style="background:#eef2f7;color:#1f2937;" @click="showAssessmentModal=false">Cancel</button>
+              <button type="button" class="btn btn-primary" :disabled="assessmentSubmitting" @click="submitAssessment()" x-text="assessmentSubmitting ? 'Submitting…' : 'Submit assessment'"></button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
   </main>
 
   <script>
@@ -248,6 +338,14 @@
         saving: false,
         savedMsg: '',
         errMsg: '',
+        assessmentLoading: false,
+        assessmentSubmitting: false,
+        showAssessmentModal: false,
+        assessmentAttemptToken: '',
+        assessmentQuestions: [],
+        assessmentAnswers: {},
+        assessmentResult: null,
+        assessmentError: '',
         isTeacher: TG.TokenStore.getUser()?.role === 'teacher',
         form: {
           full_name: '', phone: '', grade: '', years_experience: '',
@@ -265,15 +363,55 @@
             .map(s => s.trim())
             .filter(Boolean);
         },
+        async openAssessment() {
+          this.assessmentLoading = true;
+          this.assessmentError = '';
+          this.assessmentResult = null;
+          this.assessmentAnswers = {};
+          this.assessmentQuestions = [];
+          try {
+            const data = await TG.Assessments.generateProfile();
+            this.assessmentAttemptToken = data?.attempt_token || '';
+            this.assessmentQuestions = Array.isArray(data?.questions) ? data.questions : [];
+            this.showAssessmentModal = true;
+          } catch (e) {
+            if (e?.data?.message) this.assessmentError = e.data.message;
+            else this.assessmentError = e?.message || 'Could not generate assessment.';
+            this.showAssessmentModal = true;
+          } finally {
+            this.assessmentLoading = false;
+          }
+        },
+        async submitAssessment() {
+          if (!this.assessmentAttemptToken || this.assessmentQuestions.length === 0) return;
+          this.assessmentSubmitting = true;
+          this.assessmentError = '';
+          try {
+            const answers = this.assessmentQuestions.map(q => ({
+              question_id: q.id,
+              answer_key: this.assessmentAnswers[q.id] || '',
+            }));
+            const result = await TG.Assessments.submitProfile(this.assessmentAttemptToken, answers);
+            this.assessmentResult = result || null;
+            try { await this.init(); } catch {}
+          } catch (e) {
+            this.assessmentError = e?.message || 'Could not submit assessment.';
+          } finally {
+            this.assessmentSubmitting = false;
+          }
+        },
         async init() {
           try {
-            const me = this.isTeacher ? await TG.Teachers.getMe() : await TG.Students.getMe();
-            this.form.full_name = me?.full_name || '';
-            this.form.phone = me?.phone || '';
+            const [userMe, me] = await Promise.all([
+              TG.Users.getMe(),
+              this.isTeacher ? TG.Teachers.getMe() : TG.Students.getMe(),
+            ]);
+            this.form.full_name = userMe?.full_name || me?.full_name || '';
+            this.form.phone = userMe?.phone || '';
             this.form.grade = me?.grade || '';
-            this.form.years_experience = me?.years_experience ?? '';
+            this.form.years_experience = me?.experience_years ?? me?.years_experience ?? '';
             this.form.school_name = me?.school_name || '';
-            this.form.school_or_institution = me?.school_or_institution || '';
+            this.form.school_or_institution = me?.school_or_institution || me?.school_name || '';
             this.form.address_city = me?.address_city || me?.city || '';
             this.form.address_state = me?.address_state || me?.state || '';
             this.form.address_pincode = me?.address_pincode || me?.pincode || '';
@@ -286,7 +424,7 @@
             this.form.weekly_study_hours = me?.weekly_study_hours ?? '';
             this.form.strengthsText = this.toCommaText(me?.strengths);
             this.form.improvementAreasText = this.toCommaText(me?.improvement_areas);
-            this.form.goalsText = this.toCommaText(me?.goals);
+            this.form.goalsText = me?.learning_goals || this.toCommaText(me?.goals);
 
             this.form.teaching_style = me?.teaching_style || '';
             this.form.focusGradesText = this.toCommaText(me?.focus_grades);
@@ -304,43 +442,60 @@
           this.savedMsg = '';
           this.errMsg = '';
           try {
-            const payload = {
-              full_name: this.form.full_name || null,
-              phone: this.form.phone || null,
-              school_name: this.form.school_name || null,
-              school_or_institution: this.form.school_or_institution || null,
-              address_city: this.form.address_city || null,
-              address_state: this.form.address_state || null,
-              address_pincode: this.form.address_pincode || null,
-              bio: this.form.bio || null,
-              subjects: this.toList(this.form.subjectsText),
-            };
+            const userPayload = {};
+            if ((this.form.full_name || '').trim()) userPayload.full_name = this.form.full_name.trim();
+            if ((this.form.phone || '').trim()) userPayload.phone = this.form.phone.trim();
+            if (Object.keys(userPayload).length) {
+              await TG.Users.updateMe(userPayload);
+            }
 
             if (this.isTeacher) {
-              payload.years_experience = this.form.years_experience === '' ? null : Number(this.form.years_experience);
-              payload.preferred_language = this.form.preferred_language || null;
-              payload.teaching_style = this.form.teaching_style || null;
-              payload.focus_grades = this.toList(this.form.focusGradesText);
-              payload.focus_boards = this.toList(this.form.focusBoardsText);
-              payload.class_note_tone = this.form.class_note_tone || null;
-              payload.class_note_preferences = this.form.class_note_preferences || null;
-              await TG.Teachers.updateMe(payload);
+              const teacherPayload = {
+                school_name: this.form.school_name || null,
+                school_or_institution: this.form.school_or_institution || null,
+                bio: this.form.bio || null,
+                subjects: this.toList(this.form.subjectsText),
+                experience_years: this.form.years_experience === '' ? null : Number(this.form.years_experience),
+                preferred_language: this.form.preferred_language || null,
+                teaching_style: ({
+                  conceptual: 'lecture',
+                  exam_oriented: 'practical',
+                  story_based: 'lecture',
+                })[this.form.teaching_style] || (this.form.teaching_style || null),
+                focus_grades: this.toList(this.form.focusGradesText),
+                focus_boards: this.toList(this.form.focusBoardsText),
+                class_note_tone: ({
+                  simple: 'concise',
+                  encouraging: 'conceptual',
+                })[this.form.class_note_tone] || (this.form.class_note_tone || null),
+                class_note_preferences: this.form.class_note_preferences || null,
+              };
+              await TG.Teachers.updateMe(teacherPayload);
             } else {
-              payload.grade = this.form.grade || null;
-              payload.preferred_language = this.form.preferred_language || null;
-              payload.learning_style = this.form.learning_style || null;
-              payload.target_exam = this.form.target_exam || null;
-              payload.weekly_study_hours = this.form.weekly_study_hours === '' ? null : Number(this.form.weekly_study_hours);
-              payload.strengths = this.toList(this.form.strengthsText);
-              payload.improvement_areas = this.toList(this.form.improvementAreasText);
-              payload.goals = this.toList(this.form.goalsText);
-              await TG.Students.updateMe(payload);
+              const studentPayload = {
+                grade: this.form.grade || null,
+                school_name: this.form.school_name || this.form.school_or_institution || null,
+                address_city: this.form.address_city || null,
+                address_state: this.form.address_state || null,
+                address_pincode: this.form.address_pincode || null,
+                preferred_language: this.form.preferred_language || null,
+                learning_style: (this.form.learning_style === 'reading_writing'
+                ? 'reading'
+                : (this.form.learning_style || null)),
+                target_exam: this.form.target_exam || null,
+                weekly_study_hours: this.form.weekly_study_hours === '' ? null : Number(this.form.weekly_study_hours),
+                strengths: this.toList(this.form.strengthsText),
+                improvement_areas: this.toList(this.form.improvementAreasText),
+                learning_goals: this.form.goalsText || null,
+              };
+              await TG.Students.updateMe(studentPayload);
             }
 
             const existing = TG.TokenStore.getUser() || {};
             TG.TokenStore.set(TG.TokenStore.getAccess(), TG.TokenStore.getRefresh(), {
               ...existing,
               full_name: this.form.full_name || existing.full_name,
+              phone: this.form.phone || existing.phone,
             });
             if (window.Alpine?.store('auth')) Alpine.store('auth').user = TG.TokenStore.getUser();
 

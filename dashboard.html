@@ -3,13 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard — TamGam</title>
+  <title>Dashboard  TamGam</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display@0;1&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script src="/shared/api.js"></script>
   <script src="/shared/auth.js"></script>
+  <script src="/shared/branding.js"></script>
   <style>
     :root {
       --saffron:#E8640C; --saffron-lt:#F5914A; --saffron-dk:#C04F06;
@@ -22,7 +25,7 @@
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:'DM Sans',sans-serif; background:var(--cream); color:var(--ink); display:flex; min-height:100vh; }
 
-    /* ── Sidebar ── */
+    /*  Sidebar  */
     .sidebar {
       width: var(--sidebar-w); flex-shrink: 0;
       background: var(--ink); min-height: 100vh;
@@ -86,17 +89,46 @@
     }
     .logout-btn:hover { color: var(--saffron); }
 
-    /* ── Main content ── */
+    /*  Main content  */
     .main { flex: 1; padding: 36px 40px; overflow-y: auto; }
 
     .page-header { margin-bottom: 32px; }
+    .page-header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
     .page-header h1 {
       font-family: 'Playfair Display', serif;
       font-size: 2rem; color: var(--ink); margin-bottom: 4px;
     }
     .page-header p { font-size: 0.95rem; color: var(--ink-lt); }
+    .btn-header-note {
+      border: 1px solid var(--teal);
+      background: white;
+      color: var(--teal);
+      border-radius: 10px;
+      padding: 9px 14px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-header-note:hover { background: rgba(13,92,99,.06); }
+    .sub-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+    .sub-pill.active { background: rgba(5,150,105,.12); color: #047857; }
+    .sub-pill.inactive { background: var(--ivory-dk); color: var(--ink-lt); }
 
-    /* ── Subscription gate banner ── */
+    /*  Subscription gate banner  */
     .sub-banner {
       background: linear-gradient(135deg, var(--saffron) 0%, var(--saffron-dk) 100%);
       border-radius: 16px; padding: 20px 24px;
@@ -114,7 +146,7 @@
     }
     .btn-sub:hover { transform: translateY(-1px); }
 
-    /* ── Stats row ── */
+    /*  Stats row  */
     .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
     .stat-card {
       background: white; border-radius: 16px;
@@ -125,7 +157,7 @@
     .stat-sub   { font-size: 0.78rem; color: var(--ink-lt); margin-top: 4px; }
     .stat-icon  { float: right; font-size: 1.6rem; opacity: .7; }
 
-    /* ── Grid layout ── */
+    /*  Grid layout  */
     .dash-grid {
       display: grid;
       grid-template-columns: 1fr 360px;
@@ -133,7 +165,7 @@
     }
     @media (max-width: 1100px) { .dash-grid { grid-template-columns: 1fr; } }
 
-    /* ── Card ── */
+    /*  Card  */
     .card {
       background: white; border-radius: 20px;
       border: 1px solid var(--ivory-dk); overflow: hidden;
@@ -148,7 +180,7 @@
     .card-link:hover { text-decoration: underline; }
     .card-body { padding: 16px 24px 20px; }
 
-    /* ── Class list ── */
+    /*  Class list  */
     .class-item {
       display: flex; align-items: center; gap: 14px;
       padding: 12px 0; border-bottom: 1px solid var(--ivory-dk);
@@ -170,7 +202,7 @@
       background: var(--ivory-dk); padding: 4px 8px; border-radius: 5px;
     }
 
-    /* ── Notes list ── */
+    /*  Notes list  */
     .note-item {
       display: flex; align-items: flex-start; gap: 12px;
       padding: 12px 0; border-bottom: 1px solid var(--ivory-dk);
@@ -193,7 +225,7 @@
     .badge-new  { background: rgba(5,150,105,.1); color: #059669; }
     .badge-done { background: var(--ivory-dk); color: var(--ink-lt); }
 
-    /* ── Diya card ── */
+    /*  Diya card  */
     .diya-cta {
       background: linear-gradient(135deg, var(--teal), var(--teal-lt));
       border-radius: 20px; padding: 24px;
@@ -210,12 +242,46 @@
     }
     .btn-diya:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.15); }
 
-    /* ── Assessment history ── */
+    /*  Assessment history  */
     .assess-row {
       display: flex; align-items: center; gap: 12px;
       padding: 10px 0; border-bottom: 1px solid var(--ivory-dk);
     }
     .assess-row:last-child { border-bottom: none; }
+    .assess-row.pending-item { background: rgba(220,38,38,.06); border-radius: 10px; padding: 10px; margin: 6px 0; border: 1px solid rgba(220,38,38,.3); }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-left: 8px;
+      letter-spacing: .03em;
+    }
+    .status-pill-scheduled { background: rgba(5,150,105,.1); color: #047857; }
+    .status-pill-live { background: rgba(13,92,99,.12); color: var(--teal); }
+    .status-pill-completed { background: var(--ivory-dk); color: var(--ink-lt); }
+    .status-pill-cancelled { background: rgba(220,38,38,.12); color: #DC2626; }
+    .pager {
+      display:flex;
+      justify-content:flex-end;
+      align-items:center;
+      gap:8px;
+      margin-top:12px;
+    }
+    .pager button {
+      border:1px solid var(--ivory-dk);
+      background:#fff;
+      border-radius:8px;
+      padding:6px 10px;
+      font-size:.78rem;
+      font-weight:700;
+      color:var(--ink);
+      cursor:pointer;
+    }
+    .pager button:disabled { opacity:.45; cursor:not-allowed; }
     .score-circle {
       width: 40px; height: 40px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
@@ -228,19 +294,57 @@
     .assess-name { font-size: 0.88rem; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
     .assess-date { font-size: 0.75rem; color: var(--ink-lt); }
 
-    /* ── Progress bar ── */
+    /*  Progress bar  */
     .progress-bar {
       height: 6px; background: var(--ivory-dk); border-radius: 3px;
       margin-top: 6px; overflow: hidden;
     }
     .progress-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
 
-    /* ── Empty state ── */
+    /*  Notifications  */
+    .notif-panel .card-header { padding-bottom: 12px; }
+    .notif-head-actions { display: flex; align-items: center; gap: 10px; }
+    .notif-close {
+      border: 1px solid var(--ivory-dk);
+      background: white;
+      color: var(--ink-lt);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .notif-item {
+      border: 1px solid var(--ivory-dk);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+      background: #fff;
+    }
+    .notif-item.unread { border-color: rgba(232,100,12,.35); background: rgba(232,100,12,.03); }
+    .notif-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+    .notif-type {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      background: var(--ivory-dk);
+      color: var(--ink-lt);
+    }
+    .notif-time { font-size: 0.75rem; color: var(--ink-lt); white-space: nowrap; }
+    .notif-title { font-size: 0.9rem; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+    .notif-body { font-size: 0.84rem; color: var(--ink-lt); line-height: 1.5; }
+
+    /*  Empty state  */
     .empty { text-align: center; padding: 32px 24px; color: var(--ink-lt); }
     .empty-icon { font-size: 2.5rem; margin-bottom: 8px; }
     .empty p { font-size: 0.9rem; }
 
-    /* ── Skeleton loader ── */
+    /*  Skeleton loader  */
     .skeleton {
       background: linear-gradient(90deg, var(--ivory-dk) 25%, var(--ivory) 50%, var(--ivory-dk) 75%);
       background-size: 200% 100%;
@@ -250,11 +354,76 @@
     @keyframes shimmer { to { background-position: -200% 0; } }
     .skel-line { height: 14px; margin: 8px 0; }
     .skel-short { width: 40%; }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(26,26,46,.5);
+      backdrop-filter: blur(3px);
+      z-index: 120;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-card {
+      width: min(780px, 100%);
+      max-height: 92vh;
+      overflow: auto;
+      background: white;
+      border-radius: 16px;
+      border: 1px solid var(--ivory-dk);
+      padding: 18px;
+    }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-row { margin-bottom: 10px; }
+    .form-label { display:block; font-size:.8rem; color:var(--ink-lt); margin-bottom:6px; }
+    .form-input, .form-textarea {
+      width: 100%;
+      border: 1px solid var(--ivory-dk);
+      border-radius: 8px;
+      padding: 9px 10px;
+      font: inherit;
+      color: var(--ink);
+      background: #fff;
+    }
+    .form-textarea { min-height: 120px; resize: vertical; }
+    .notes-rendered {
+      border: 1px solid var(--ivory-dk);
+      border-radius: 10px;
+      padding: 12px;
+      max-height: 420px;
+      overflow: auto;
+      line-height: 1.6;
+      font-size: 0.92rem;
+      color: var(--ink);
+      background: #fffefb;
+    }
+    .notes-rendered h1, .notes-rendered h2, .notes-rendered h3 { margin: 10px 0 6px; line-height: 1.35; }
+    .notes-rendered p { margin: 6px 0; }
+    .notes-rendered ul, .notes-rendered ol { margin: 6px 0 8px 20px; }
+    .notes-rendered code { background: #f6efe3; padding: 1px 4px; border-radius: 4px; }
+    .btn-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,.14);
+      color: white;
+      border: 1px solid rgba(255,255,255,.45);
+      border-radius: 10px;
+      padding: 9px 14px;
+      font-size: .82rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-note:hover { background: rgba(255,255,255,.22); }
+    @media (max-width: 760px) {
+      .form-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body x-data x-init="Guards.requireLogin()">
 
-  <!-- ── Sidebar ── -->
+  <!--  Sidebar  -->
   <aside class="sidebar">
     <a href="/" class="sidebar-logo">
       <img src="/logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam">
@@ -264,10 +433,19 @@
     <div class="nav-section">
       <div class="nav-label">Learn</div>
       <a href="/dashboard.html" class="nav-item active">
-        <span class="nav-icon">🏠</span> Dashboard
+        <span class="nav-icon">D</span> Dashboard
       </a>
       <a href="/community.html" class="nav-item">
-        <span class="nav-icon">💬</span> Community
+        <span class="nav-icon">C</span> Community
+      </a>
+      <a href="/find-teachers.html" class="nav-item">
+        <span class="nav-icon">T</span> Find Teacher
+      </a>
+      <a href="#homework-section" class="nav-item">
+        <span class="nav-icon">H</span> Homework
+      </a>
+      <a href="#" class="nav-item" @click.prevent="window.dispatchEvent(new CustomEvent('tg-open-feedbacks'))">
+        <span class="nav-icon">F</span> Feedbacks
       </a>
       <a href="/diya.html" class="nav-item">
         <span class="nav-icon"><img src="/logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></span> Ask Diya
@@ -277,13 +455,14 @@
     <div class="nav-section">
       <div class="nav-label">Account</div>
       <a href="/profile.html" class="nav-item">
-        <span class="nav-icon">👤</span> Profile
+        <span class="nav-icon">P</span> Profile
       </a>
-      <a href="#" class="nav-item">
-        <span class="nav-icon">⭐</span> Subscription
+      <a href="/plans.html" class="nav-item">
+        <span class="nav-icon">S</span> Subscription
+        <span class="sub-pill active" x-show="$store.auth.isSubscribed">Active</span>
       </a>
-      <a href="#" class="nav-item">
-        <span class="nav-icon">🔔</span> Notifications
+      <a href="#notifications-panel" class="nav-item" @click.prevent="window.dispatchEvent(new CustomEvent('tg-open-notifications'))">
+        <span class="nav-icon">N</span> Notifications
         <span x-data x-show="$store.notifs.count > 0"
           style="margin-left:auto;background:var(--saffron);color:white;font-size:.7rem;font-weight:700;padding:2px 6px;border-radius:10px;"
           x-text="$store.notifs.count"></span>
@@ -294,44 +473,515 @@
       <div class="user-chip" x-data>
         <div class="user-avatar" x-text="$store.auth.firstName[0]?.toUpperCase()"></div>
         <div class="user-info">
-          <div class="user-name" x-text="$store.auth.user?.full_name || '—'"></div>
+          <div class="user-name" x-text="$store.auth.user?.full_name || ''"></div>
           <div class="user-role">Student
-            <span x-show="$store.auth.isSubscribed" style="color:var(--saffron);">⭐</span>
+            <span x-show="$store.auth.isSubscribed" style="color:#10B981;">PRO</span>
           </div>
         </div>
-        <button class="logout-btn" @click="$store.auth.logout()" title="Log out">↗</button>
+        <button class="logout-btn" @click="$store.auth.logout()" title="Log out">OUT</button>
       </div>
     </div>
   </aside>
 
-  <!-- ── Main ── -->
+  <!--  Main  -->
   <main class="main"
     x-data="{
       profile: null,
       classes: [],
+      allClasses: [],
+      classesPage: 1,
+      classesPerPage: 10,
       notes: [],
       assessments: [],
+      teachers: [],
+      subscriptionStatus: null,
+      homeworkItems: [],
+      homeworkLoading: false,
+      showFeedbacksModal: false,
+      showHomeworkSubmitModal: false,
+      selectedHomeworkForSubmit: null,
+      homeworkSubmissionText: '',
+      homeworkSubmissionFile: null,
+      homeworkSubmissionSaving: false,
+      homeworkSubmissionError: '',
+      showAssessmentModal: false,
+      selectedAssessmentItem: null,
+      assessmentAttempt: null,
+      assessmentAnswers: {},
+      assessmentSubmitting: false,
+      assessmentError: '',
+      showNotesModal: false,
+      notesForm: { subject: '', standard: '', chapter: '' },
+      notesChapterFile: null,
+      notesExamFile: null,
+      notesGenerating: false,
+      notesError: '',
+      notesDownloadError: '',
+      notesResult: null,
+      notifications: [],
+      notificationsLoading: false,
+      notificationsError: '',
+      verificationRespondingId: null,
+      showNotifications: false,
       loading: true,
 
       async init() {
         if (!TG.TokenStore.isLoggedIn()) return;
+        window.addEventListener('tg-open-notifications', () => this.openNotifications());
+        window.addEventListener('tg-open-feedbacks', () => this.openFeedbacks());
         Alpine.store('notifs').fetch();
         try {
-          const [p, c, n, a] = await Promise.allSettled([
+          const [p, c, n, a, h, e, s] = await Promise.allSettled([
             TG.Students.getMe(),
-            TG.Classes.list({ limit: 5 }),
+            TG.Classes.list({ limit: 200 }),
             TG.Notes.getForClass ? Promise.resolve([]) : Promise.resolve([]),
             TG.Assessments.getHistory(),
+            TG.Homework.listStudentFeed(),
+            TG.Students.getEnrollments(),
+            TG.Subscriptions.getMine(),
           ]);
           this.profile    = p.status === 'fulfilled' ? p.value : null;
-          this.classes    = c.status === 'fulfilled' ? (Array.isArray(c.value) ? c.value : c.value?.items || []) : [];
+          const classRows = c.status === 'fulfilled'
+            ? (Array.isArray(c.value) ? c.value : c.value?.classes || c.value?.items || [])
+            : [];
+          this.allClasses = classRows
+            .slice()
+            .sort((a, b) => new Date(b.scheduled_at || 0) - new Date(a.scheduled_at || 0));
+          const now = Date.now();
+          this.classes = this.allClasses
+            .filter(cls => {
+              const ts = Date.parse(cls?.scheduled_at);
+              const durationMs = Math.max(1, Number(cls?.duration_minutes || 60)) * 60 * 1000;
+              return Number.isFinite(ts) && (ts + durationMs) >= now;
+            })
+            .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at))
+            .slice(0, 5);
           this.assessments= a.status === 'fulfilled' ? (Array.isArray(a.value) ? a.value.slice(0,4) : []) : [];
+          this.homeworkItems = h.status === 'fulfilled'
+            ? (Array.isArray(h.value?.items) ? h.value.items : [])
+            : [];
+          this.teachers = e.status === 'fulfilled' ? (Array.isArray(e.value) ? e.value : []) : [];
+          this.subscriptionStatus = s.status === 'fulfilled' ? (s.value || null) : null;
         } catch {}
         this.loading = false;
       },
 
+      async loadHomework() {
+        this.homeworkLoading = true;
+        try {
+          const data = await TG.Homework.listStudentFeed();
+          this.homeworkItems = Array.isArray(data?.items) ? data.items : [];
+        } catch {
+          this.homeworkItems = [];
+        } finally {
+          this.homeworkLoading = false;
+        }
+      },
+
+      classStatusClass(status) {
+        const val = String(status || '').toLowerCase();
+        if (val === 'scheduled') return 'status-pill status-pill-scheduled';
+        if (val === 'live') return 'status-pill status-pill-live';
+        if (val === 'cancelled') return 'status-pill status-pill-cancelled';
+        return 'status-pill status-pill-completed';
+      },
+      classStatusLabel(status) {
+        const val = String(status || '').trim();
+        return val ? val : 'unknown';
+      },
+      classRowsPaged() {
+        const start = (this.classesPage - 1) * this.classesPerPage;
+        return (this.allClasses || []).slice(start, start + this.classesPerPage);
+      },
+      totalClassPages() {
+        return Math.max(1, Math.ceil((this.allClasses || []).length / this.classesPerPage));
+      },
+      goClassPage(page) {
+        const max = this.totalClassPages();
+        this.classesPage = Math.min(max, Math.max(1, Number(page || 1)));
+      },
+      sortedHomeworkItems() {
+        const rows = Array.isArray(this.homeworkItems) ? this.homeworkItems.slice() : [];
+        const pendingRank = (item) => {
+          if (!item) return 1;
+          return item.submission_status === 'not_submitted' ? 0 : 1;
+        };
+        return rows.sort((a, b) => {
+          const ra = pendingRank(a);
+          const rb = pendingRank(b);
+          if (ra !== rb) return ra - rb;
+          return new Date(b?.created_at || 0) - new Date(a?.created_at || 0);
+        });
+      },
+      isPendingItem(item) {
+        return item?.submission_status === 'not_submitted';
+      },
+      async openAssessmentSubmit(item) {
+        if (!item?.class_id || !item?.class_title) return;
+        this.assessmentError = '';
+        this.assessmentAttempt = null;
+        this.assessmentAnswers = {};
+        this.selectedAssessmentItem = item;
+        try {
+          const data = await TG.Assessments.getForClass(item.class_id);
+          if (data?.is_gated) {
+            this.assessmentError = 'Active subscription required to take this assessment.';
+            this.showAssessmentModal = true;
+            return;
+          }
+          const questions = Array.isArray(data?.questions) ? data.questions : [];
+          if (!questions.length) {
+            this.assessmentError = 'Assessment is not ready yet.';
+            this.showAssessmentModal = true;
+            return;
+          }
+          this.assessmentAttempt = data;
+          for (const q of questions) this.assessmentAnswers[String(q.id)] = '';
+          this.showAssessmentModal = true;
+        } catch (e) {
+          this.assessmentError = e?.message || 'Could not load assessment.';
+          this.showAssessmentModal = true;
+        }
+      },
+      async submitAssessmentNow() {
+        if (!this.selectedAssessmentItem?.class_id) return;
+        const questions = Array.isArray(this.assessmentAttempt?.questions) ? this.assessmentAttempt.questions : [];
+        const answers = [];
+        for (const q of questions) {
+          const value = String(this.assessmentAnswers[String(q.id)] || '').trim();
+          if (value) answers.push({ question_id: Number(q.id), answer: value });
+        }
+        if (!answers.length) {
+          this.assessmentError = 'Please answer at least one question.';
+          return;
+        }
+        this.assessmentSubmitting = true;
+        this.assessmentError = '';
+        try {
+          await TG.Assessments.submitForClass(this.selectedAssessmentItem.class_id, answers);
+          this.showAssessmentModal = false;
+          await this.loadHomework();
+          const latest = await TG.Assessments.getHistory();
+          this.assessments = Array.isArray(latest) ? latest.slice(0, 8) : this.assessments;
+        } catch (e) {
+          this.assessmentError = e?.message || 'Could not submit assessment.';
+        } finally {
+          this.assessmentSubmitting = false;
+        }
+      },
+
+      async downloadHomework(id) {
+        try {
+          await TG.Homework.downloadFile(id);
+        } catch (e) {
+          alert(e?.message || 'Failed to download homework file.');
+        }
+      },
+
+      async openFeedbacks() {
+        try {
+          const [a, h] = await Promise.all([
+            TG.Assessments.getHistory(),
+            TG.Homework.listStudentFeed(),
+          ]);
+          this.assessments = Array.isArray(a) ? a : [];
+          this.homeworkItems = Array.isArray(h?.items) ? h.items : [];
+        } catch {}
+        this.showFeedbacksModal = true;
+      },
+
+      feedbackRows() {
+        const rows = [];
+        const assessments = Array.isArray(this.assessments) ? this.assessments : [];
+        for (const a of assessments) {
+          rows.push({
+            type: 'Assessment',
+            title: a.class_title || 'Assessment',
+            date: a.teacher_feedback_given_at || a.submitted_at || a.completed_at || a.created_at || null,
+            provider: a.feedback_provider_name || 'Diya',
+            status: a.teacher_feedback_text || ((a.score != null || a.score_pct != null) ? `Result ${Math.round(a.score ?? a.score_pct)}%` : 'Completed'),
+          });
+        }
+        const feedItems = Array.isArray(this.homeworkItems) ? this.homeworkItems : [];
+        const feedAssessments = feedItems.filter(h => h.source_type === 'assessment');
+        for (const a of feedAssessments) {
+          rows.push({
+            type: 'Assessment',
+            title: a.title || a.class_title || 'Assessment',
+            date: a.feedback_given_at || a.submitted_at || a.created_at || null,
+            provider: a.feedback_provider_name || 'Teacher/Diya',
+            status: a.feedback_text || (a.submission_status === 'submitted' ? 'Submitted' : 'Pending'),
+          });
+        }
+        const homeworks = feedItems.filter(h => h.source_type === 'homework');
+        for (const h of homeworks) {
+          let status = 'Not submitted';
+          if (h.submission_status === 'submitted' && (h.feedback_text || h.feedback_score != null)) status = 'Feedback received';
+          else if (h.submission_status === 'submitted') status = 'Submitted';
+          rows.push({
+            type: 'Homework',
+            title: h.title,
+            date: h.feedback_given_at || h.submitted_at || h.created_at || null,
+            provider: h.feedback_provider_name || h.teacher_name || 'Teacher',
+            status,
+          });
+        }
+        rows.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+        return rows;
+      },
+
+      openHomeworkSubmit(hw) {
+        this.selectedHomeworkForSubmit = hw || null;
+        this.homeworkSubmissionText = '';
+        this.homeworkSubmissionFile = null;
+        this.homeworkSubmissionSaving = false;
+        this.homeworkSubmissionError = '';
+        this.showHomeworkSubmitModal = true;
+      },
+
+      handleHomeworkSubmissionFile(event) {
+        this.homeworkSubmissionFile = event?.target?.files?.[0] || null;
+      },
+
+      async submitHomeworkNow() {
+        const hw = this.selectedHomeworkForSubmit;
+        if (!hw?.id) return;
+        if (!this.homeworkSubmissionText.trim() && !this.homeworkSubmissionFile) {
+          this.homeworkSubmissionError = 'Write your answer or upload a file.';
+          return;
+        }
+        if (this.homeworkSubmissionFile && this.homeworkSubmissionFile.size > (1024 * 1024)) {
+          this.homeworkSubmissionError = 'File too large. Max 1 MB.';
+          return;
+        }
+        this.homeworkSubmissionSaving = true;
+        this.homeworkSubmissionError = '';
+        try {
+          await TG.Homework.submitHomework(hw.id, { submission_text: this.homeworkSubmissionText.trim() }, this.homeworkSubmissionFile);
+          this.showHomeworkSubmitModal = false;
+          await this.loadHomework();
+        } catch (e) {
+          this.homeworkSubmissionError = e?.message || 'Could not submit homework.';
+        } finally {
+          this.homeworkSubmissionSaving = false;
+        }
+      },
+
+      openNotesModal() {
+        this.showNotesModal = false;
+        alert('Make Notes is currently in beta and under development. It will be available soon.');
+      },
+
+      handleNotesChapterFile(event) {
+        this.notesChapterFile = event?.target?.files?.[0] || null;
+        if (this.notesChapterFile) this.notesError = '';
+      },
+
+      handleNotesExamFile(event) {
+        this.notesExamFile = event?.target?.files?.[0] || null;
+      },
+
+      async generateNotesNow() {
+        const subject = String(this.notesForm?.subject || '').trim();
+        const chapter = String(this.notesForm?.chapter || '').trim();
+        const standard = Number(this.notesForm?.standard || 0);
+        const chapterFileFromInput = this.$refs?.notesChapterInput?.files?.[0] || null;
+        if (!this.notesChapterFile && chapterFileFromInput) {
+          this.notesChapterFile = chapterFileFromInput;
+        }
+        const examFileFromInput = this.$refs?.notesExamInput?.files?.[0] || null;
+        if (!this.notesExamFile && examFileFromInput) {
+          this.notesExamFile = examFileFromInput;
+        }
+        if (!subject || !chapter || !Number.isFinite(standard) || standard < 1 || standard > 12) {
+          this.notesError = 'Subject, standard, and chapter/lesson are required.';
+          return;
+        }
+        if (!this.notesChapterFile) {
+          this.notesError = 'Chapter upload is required.';
+          return;
+        }
+        if (this.notesChapterFile && this.notesChapterFile.size > (4 * 1024 * 1024)) {
+          this.notesError = 'Chapter file is too large. Max 4 MB.';
+          return;
+        }
+        if (this.notesExamFile && this.notesExamFile.size > (4 * 1024 * 1024)) {
+          this.notesError = 'Exam questions file is too large. Max 4 MB.';
+          return;
+        }
+        this.notesGenerating = true;
+        this.notesError = '';
+        this.notesDownloadError = '';
+        this.notesResult = null;
+        try {
+          const res = await TG.Notes.generateStudent(
+            { subject, standard, chapter },
+            this.notesChapterFile,
+            this.notesExamFile,
+          );
+          this.notesResult = res || null;
+          if (this.notesResult?.notes_markdown) {
+            const ok = this.downloadNotesPdf(this.notesResult);
+            if (!ok) {
+              this.notesDownloadError = 'Auto-download was blocked by the browser. Click Download PDF below.';
+            }
+          }
+        } catch (e) {
+          this.notesError = e?.message || 'Failed to generate notes.';
+        } finally {
+          this.notesGenerating = false;
+        }
+      },
+
+      showSubscriptionPlan() {
+        window.location.href = '/plans.html';
+      },
+
+      async refreshTeachers() {
+        try {
+          const rows = await TG.Students.getEnrollments();
+          this.teachers = Array.isArray(rows) ? rows : [];
+        } catch {
+          this.teachers = [];
+        }
+      },
+
+      async openTeacherActions(teacher) {
+        if (!teacher?.id) return;
+        const yes = confirm(
+          `Teacher: ${teacher.teacher_name}\nSubject: ${teacher.subject || 'General'}\n\nDo you want to unenroll from this teacher?`
+        );
+        if (!yes) return;
+        try {
+          await TG.Students.unenroll(teacher.id);
+          await this.refreshTeachers();
+          alert('Unenrolled successfully. Your teacher has been notified.');
+        } catch (e) {
+          alert(e?.message || 'Could not unenroll right now.');
+        }
+      },
+
+      downloadNotesPdf(result) {
+        try {
+          const jspdfNS = window.jspdf || {};
+          const JsPdfCtor = jspdfNS.jsPDF;
+          const title = `${result?.subject || 'Notes'} - Class ${result?.standard || ''} - ${result?.chapter || ''}`.trim();
+          const notes = this.normalizeNotesText(String(result?.notes_markdown || ''));
+
+          if (!JsPdfCtor) {
+            const blob = new Blob([`${title}\n\n${notes}`], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${title.replace(/[^a-zA-Z0-9 ._-]+/g, ' ').trim() || 'notes'}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            return true;
+          }
+
+          const doc = new JsPdfCtor({ unit: 'pt', format: 'a4' });
+          const pageW = doc.internal.pageSize.getWidth();
+          const pageH = doc.internal.pageSize.getHeight();
+          const margin = 40;
+          let y = margin;
+
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(14);
+          const titleLines = doc.splitTextToSize(title, pageW - margin * 2);
+          doc.text(titleLines, margin, y);
+          y += (titleLines.length * 18) + 8;
+
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(11);
+          const lines = doc.splitTextToSize(notes, pageW - margin * 2);
+          const lineH = 14;
+          for (const line of lines) {
+            if (y > pageH - margin) {
+              doc.addPage();
+              y = margin;
+            }
+            doc.text(line, margin, y);
+            y += lineH;
+          }
+
+          const filename = `${title.replace(/[^a-zA-Z0-9 ._-]+/g, ' ').trim() || 'notes'}.pdf`;
+          doc.save(filename);
+          return true;
+        } catch (e) {
+          console.error('PDF download failed', e);
+          return false;
+        }
+      },
+
+      normalizeNotesText(raw) {
+        let text = String(raw || '');
+        text = text
+          .replaceAll('θ', 'theta')
+          .replaceAll('¸', 'theta')
+          .replaceAll('×', 'x')
+          .replaceAll('−', '-')
+          .replaceAll('–', '-')
+          .replaceAll('—', '-');
+        text = text.replace(/\b(?:[A-Za-z]\s){3,}[A-Za-z]\b/g, (m) => m.replaceAll(' ', ''));
+        text = text.replace(/[ \t]{2,}/g, ' ');
+        return text;
+      },
+
+      notesHtml() {
+        const md = this.normalizeNotesText(this.notesResult?.notes_markdown || '');
+        if (!md) return '';
+        if (window.marked?.parse) return window.marked.parse(md);
+        return md
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\n/g, '<br>');
+      },
+
       get isSubscribed() {
         return TG.TokenStore.getUser()?.is_subscribed;
+      },
+
+      notificationTypeLabel(type) {
+        return String(type || 'update').replace(/_/g, ' ');
+      },
+      isTeacherVerificationNotification(n) {
+        return (n?.extra_data?.kind === 'teacher_verification_request') &&
+          String(n?.extra_data?.status || 'pending') === 'pending';
+      },
+      async respondTeacherVerification(n, decision) {
+        if (!n?.id) return;
+        this.verificationRespondingId = n.id;
+        try {
+          await TG.Notifications.respondTeacherVerification(n.id, decision);
+          await this.openNotifications();
+          Alpine.store('notifs').fetch();
+        } catch (e) {
+          alert(e?.message || 'Could not submit response.');
+        } finally {
+          this.verificationRespondingId = null;
+        }
+      },
+
+      async openNotifications() {
+        this.showNotifications = true;
+        this.notificationsLoading = true;
+        this.notificationsError = '';
+        try {
+          const data = await TG.Notifications.list();
+          this.notifications = Array.isArray(data?.notifications) ? data.notifications : [];
+        } catch (e) {
+          this.notifications = [];
+          this.notificationsError = e?.message || 'Could not load notifications.';
+        } finally {
+          this.notificationsLoading = false;
+        }
+        try {
+          await Alpine.store('notifs').markAllRead();
+          this.notifications = this.notifications.map(n => ({ ...n, is_read: true }));
+        } catch {}
       },
 
       async startSubscription() {
@@ -341,7 +991,7 @@
             if (!paid.length) { alert('No paid plans available.'); return; }
 
             // Build a simple plan picker dialog
-            const opts = paid.map((p, i) => `${i+1}. ${p.name} — ₹${p.price_monthly_rupees}/mo or ₹${p.price_annual_rupees}/yr`).join('\n');
+            const opts = paid.map((p, i) => `${i+1}. ${p.name}  ${p.price_monthly_rupees}/mo or ${p.price_annual_rupees}/yr`).join('\n');
             const choice = prompt(`Choose a plan:\n\n${opts}\n\nEnter number (1-${paid.length}):`);
             const idx = parseInt(choice) - 1;
             if (isNaN(idx) || idx < 0 || idx >= paid.length) return;
@@ -349,7 +999,7 @@
             const selected = paid[idx];
 
             // Ask monthly or annual
-            const period = prompt(`Choose period for ${selected.name}:\n1. Monthly — ₹${selected.price_monthly_rupees}\n2. Annual — ₹${selected.price_annual_rupees}\n\nEnter 1 or 2:`);
+            const period = prompt(`Choose period for ${selected.name}:\n1. Monthly  ${selected.price_monthly_rupees}\n2. Annual  ${selected.price_annual_rupees}\n\nEnter 1 or 2:`);
             const plan_id = selected.id;
             const billing = period === '2' ? 'annual' : 'monthly';
 
@@ -366,7 +1016,7 @@
             key: window.RAZORPAY_KEY_ID || '',
             subscription_id: order.razorpay_subscription_id,
             name: 'TamGam',
-            description: `${selected.name} — ${billing}`,
+            description: `${selected.name}  ${billing}`,
             theme: { color: '#E8640C' },
             handler: () => {
                 alert('Payment successful! Your subscription is now active.');
@@ -391,41 +1041,110 @@
   >
     <!-- Page header -->
     <div class="page-header">
-      <h1 x-data>Good day, <span x-text="$store.auth.firstName"></span></h1>
-      <p>Here's where you left off. Keep the flame burning.</p>
+      <div class="page-header-row">
+        <div>
+          <h1 x-data>Good day, <span x-text="$store.auth.firstName"></span></h1>
+          <p>Here's where you left off. Keep the flame burning.</p>
+          <div style="margin-top:8px;">
+            <button
+              type="button"
+              class="sub-pill"
+              :class="isSubscribed ? 'active' : 'inactive'"
+              @click="showSubscriptionPlan()"
+              x-text="isSubscribed ? `Subscribed: ${subscriptionStatus?.plan_name || 'Active'}` : 'No active subscription'"
+              style="border:none;cursor:pointer;"
+            ></button>
+          </div>
+        </div>
+        <button type="button" class="btn-header-note" @click="openNotesModal()">Make Notes</button>
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div id="notifications-panel" class="card notif-panel" x-show="showNotifications">
+      <div class="card-header">
+        <span class="card-title">Notifications</span>
+        <div class="notif-head-actions">
+          <a href="#" class="card-link" @click.prevent="openNotifications()">Refresh</a>
+          <button type="button" class="notif-close" @click="showNotifications = false">Hide</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <template x-if="notificationsLoading">
+          <div>
+            <div class="skeleton skel-line"></div>
+            <div class="skeleton skel-line"></div>
+            <div class="skeleton skel-line"></div>
+          </div>
+        </template>
+        <template x-if="!notificationsLoading && notificationsError">
+          <div class="empty">
+            <p x-text="notificationsError"></p>
+          </div>
+        </template>
+        <template x-if="!notificationsLoading && !notificationsError && notifications.length === 0">
+          <div class="empty">
+            <p>No notifications yet.</p>
+          </div>
+        </template>
+        <template x-for="n in notifications" :key="n.id">
+          <div class="notif-item" :class="{ unread: !n.is_read }">
+            <div class="notif-top">
+              <span class="notif-type" x-text="notificationTypeLabel(n.type)"></span>
+              <span class="notif-time" x-text="Utils.relativeTime(n.created_at)"></span>
+            </div>
+            <div class="notif-title" x-text="n.title"></div>
+            <div class="notif-body" x-text="n.body || ''"></div>
+            <div x-show="isTeacherVerificationNotification(n)" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+              <button
+                type="button"
+                style="border:none;background:#16a34a;color:white;padding:7px 10px;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;"
+                :disabled="verificationRespondingId === n.id"
+                @click="respondTeacherVerification(n, 'verify')"
+              >Verify</button>
+              <button
+                type="button"
+                style="border:none;background:#dc2626;color:white;padding:7px 10px;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;"
+                :disabled="verificationRespondingId === n.id"
+                @click="respondTeacherVerification(n, 'dont_know')"
+              >Don't know</button>
+            </div>
+          </div>
+        </template>
+      </div>
     </div>
 
     <!-- Subscription banner (unsubscribed only) -->
     <div class="sub-banner" x-show="!isSubscribed && !loading">
       <div class="sub-banner-text">
-        <h3>🔒 Unlock the full TamGam experience</h3>
-        <p>Subscribe to access AI notes, assessments, Diya tutor, and live class links — ₹299/month.</p>
+        <h3> Unlock the full TamGam experience</h3>
+        <p>Subscribe to access AI notes, assessments, Diya tutor, and live class links.</p>
       </div>
-      <a href="/plans.html" class="btn-sub">Subscribe now →</a>
+      <a href="/plans.html" class="btn-sub">Subscribe now </a>
     </div>
 
     <!-- Stats row -->
     <div class="stats-row">
       <div class="stat-card">
-        <span class="stat-icon">🔥</span>
+        <span class="stat-icon"></span>
         <div class="stat-label">Day streak</div>
-        <div class="stat-value" x-text="profile?.streak_days ?? '—'"></div>
+        <div class="stat-value" x-text="profile?.streak_days ?? ''"></div>
         <div class="stat-sub">Keep it going!</div>
       </div>
       <div class="stat-card">
-        <span class="stat-icon">📊</span>
+        <span class="stat-icon"></span>
         <div class="stat-label">Performance score</div>
-        <div class="stat-value" x-text="profile?.performance_score != null ? Math.round(profile.performance_score) + '%' : '—'"></div>
+        <div class="stat-value" x-text="profile?.performance_score != null ? Math.round(profile.performance_score) + '%' : ''"></div>
         <div class="stat-sub">Overall average</div>
       </div>
       <div class="stat-card">
-        <span class="stat-icon">🎯</span>
+        <span class="stat-icon"></span>
         <div class="stat-label">Understanding level</div>
-        <div class="stat-value" x-text="profile?.understanding_level ?? '—'"></div>
-        <div class="stat-sub">Scale of 1–5</div>
+        <div class="stat-value" x-text="profile?.understanding_level ?? ''"></div>
+        <div class="stat-sub">Scale of 15</div>
       </div>
       <div class="stat-card">
-        <span class="stat-icon">🏅</span>
+        <span class="stat-icon"></span>
         <div class="stat-label">Badges earned</div>
         <div class="stat-value" x-text="profile?.badges?.length ?? 0"></div>
         <div class="stat-sub">Keep earning!</div>
@@ -438,11 +1157,11 @@
       <!-- LEFT COLUMN -->
       <div>
 
-        <!-- Upcoming classes -->
+        <!-- Class records -->
         <div class="card">
           <div class="card-header">
-            <span class="card-title">📹 Upcoming classes</span>
-            <a href="#" class="card-link">View all</a>
+            <span class="card-title"> Class records</span>
+            <span class="card-link" x-text="`${allClasses.length} total`"></span>
           </div>
           <div class="card-body">
             <!-- Loading skeleton -->
@@ -461,47 +1180,58 @@
             </template>
 
             <!-- Empty state -->
-            <template x-if="!loading && classes.length === 0">
+            <template x-if="!loading && allClasses.length === 0">
               <div class="empty">
-                <div class="empty-icon">📅</div>
-                <p>No upcoming classes yet. Your teacher will schedule one soon.</p>
+                <div class="empty-icon"></div>
+                <p>No classes yet. Your teacher will schedule one soon.</p>
               </div>
             </template>
 
             <!-- Class items -->
-            <template x-for="cls in classes" :key="cls.id">
+            <template x-for="cls in classRowsPaged()" :key="cls.id">
               <div class="class-item">
                 <div class="class-dot" :style="`background:${subjectColor(cls.subject)}`"></div>
                 <div class="class-info">
-                  <div class="class-name" x-text="cls.title"></div>
+                  <div class="class-name">
+                    <span x-text="`${cls.subject || 'Class'}: ${cls.title}`"></span>
+                    <span :class="classStatusClass(cls.status)" x-text="classStatusLabel(cls.status)"></span>
+                  </div>
                   <div class="class-meta">
-                    <span x-text="Utils.formatDateTime(cls.scheduled_at)"></span>
-                    Â· <span x-text="cls.subject"></span>
+                    Schedule: <span x-text="Utils.formatDateTime(cls.scheduled_at)"></span>
+                    | <span x-text="cls.teacher_name || 'Teacher'"></span>
                   </div>
                 </div>
                 <div class="class-action">
-                  <template x-if="isSubscribed && cls.meet_link">
-                    <a :href="cls.meet_link" target="_blank">Join →</a>
+                  <template x-if="String(cls.status || '').toLowerCase() === 'cancelled'">
+                    <span class="gated-pill" style="color:#DC2626;">Cancelled</span>
                   </template>
-                  <template x-if="!isSubscribed || !cls.meet_link">
-                    <span class="gated-pill">🔒 Subscribe</span>
+                  <template x-if="String(cls.status || '').toLowerCase() !== 'cancelled' && isSubscribed && cls.meet_link">
+                    <a :href="cls.meet_link" target="_blank">Join </a>
+                  </template>
+                  <template x-if="String(cls.status || '').toLowerCase() !== 'cancelled' && (!isSubscribed || !cls.meet_link)">
+                    <span class="gated-pill"> Subscribe</span>
                   </template>
                 </div>
               </div>
             </template>
+            <div class="pager" x-show="!loading && totalClassPages() > 1">
+              <button type="button" @click="goClassPage(classesPage - 1)" :disabled="classesPage <= 1">Previous</button>
+              <span style="font-size:.78rem;color:var(--ink-lt);" x-text="`Page ${classesPage} of ${totalClassPages()}`"></span>
+              <button type="button" @click="goClassPage(classesPage + 1)" :disabled="classesPage >= totalClassPages()">Next</button>
+            </div>
           </div>
         </div>
 
         <!-- Recent assessments -->
         <div class="card">
           <div class="card-header">
-            <span class="card-title">🧪 Recent assessments</span>
+            <span class="card-title"> Recent assessments</span>
             <a href="#" class="card-link">View all</a>
           </div>
           <div class="card-body">
             <template x-if="!loading && assessments.length === 0">
               <div class="empty">
-                <div class="empty-icon">🧪</div>
+                <div class="empty-icon"></div>
                 <p x-show="isSubscribed">No assessments yet. Attend a class to unlock one.</p>
                 <p x-show="!isSubscribed">Subscribe to access adaptive assessments.</p>
               </div>
@@ -526,6 +1256,61 @@
           </div>
         </div>
 
+        <!-- Homework -->
+        <div class="card" id="homework-section">
+          <div class="card-header">
+            <span class="card-title"> Homework</span>
+            <button class="card-link" style="background:none;border:none;cursor:pointer;font-family:inherit;" @click="loadHomework()">Refresh</button>
+          </div>
+          <div class="card-body">
+            <template x-if="homeworkLoading">
+              <div>
+                <template x-for="i in 3" :key="i">
+                  <div class="skeleton skel-line"></div>
+                </template>
+              </div>
+            </template>
+            <template x-if="!homeworkLoading && homeworkItems.length === 0">
+              <div class="empty">
+                <p>No homework or teacher assessments yet.</p>
+              </div>
+            </template>
+            <template x-for="hw in sortedHomeworkItems()" :key="hw.id">
+              <div class="assess-row" :class="{ 'pending-item': isPendingItem(hw) }">
+                <div class="score-circle score-mid">
+                  <span x-text="hw.source_type === 'assessment' ? 'A' : 'H'"></span>
+                </div>
+                <div class="assess-info">
+                  <div class="assess-name" x-text="hw.title"></div>
+                  <div class="assess-date">
+                    <span x-text="hw.teacher_name || 'Teacher'"></span>
+                    <span> | </span>
+                    <span x-text="hw.class_title"></span>
+                    <span x-show="hw.due_at"> | Due: <span x-text="Utils.formatDate(hw.due_at)"></span></span>
+                  </div>
+                  <div class="assess-date" x-show="isPendingItem(hw)" style="color:#DC2626;font-weight:700;">Pending submission</div>
+                  <div class="assess-date" x-show="hw.description" x-text="hw.description"></div>
+                </div>
+                <div>
+                  <template x-if="hw.source_type === 'homework' && hw.has_file">
+                    <button style="font-size:.75rem;font-weight:600;padding:5px 10px;border-radius:6px;border:1px solid var(--teal);cursor:pointer;background:none;color:var(--teal);" @click="downloadHomework(hw.id)">Download</button>
+                  </template>
+                  <template x-if="hw.source_type === 'homework'">
+                    <button style="font-size:.75rem;font-weight:600;padding:5px 10px;border-radius:6px;border:1px solid var(--saffron);cursor:pointer;background:none;color:var(--saffron);margin-left:6px;" @click="openHomeworkSubmit(hw)">Submit</button>
+                  </template>
+                  <template x-if="hw.source_type === 'assessment'">
+                    <button
+                      type="button"
+                      style="font-size:.75rem;font-weight:600;padding:5px 10px;border-radius:6px;border:1px solid var(--teal);cursor:pointer;background:none;color:var(--teal);"
+                      @click="openAssessmentSubmit(hw)"
+                    >Take assessment</button>
+                  </template>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
       </div>
 
       <!-- RIGHT COLUMN -->
@@ -534,22 +1319,44 @@
         <!-- Diya shortcut -->
         <div class="diya-cta">
           <div style="font-size:2rem;margin-bottom:12px;"><img src="/logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></div>
-          <h3>Ask Diya anything</h3>
-          <p>Diya is your AI tutor, trained on your class content. Ask about today's topic or anything you're stuck on.</p>
+          <h3>Ask Diya your study doubts</h3>
+          <p>Diya is your AI tutor for standards 8-10. Ask only school-related questions from your class content and syllabus.</p>
           <template x-if="isSubscribed">
-            <a href="/diya.html" class="btn-diya">Chat with Diya →</a>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <a href="/diya.html" class="btn-diya">Chat with Diya </a>
+              <button type="button" class="btn-note" @click="openNotesModal()">Make notes</button>
+            </div>
           </template>
           <template x-if="!isSubscribed">
-            <div style="background:rgba(255,255,255,.1);border-radius:8px;padding:10px 14px;font-size:0.82rem;opacity:.9;">
-              🔒 Subscribe to chat with Diya
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <div style="background:rgba(255,255,255,.1);border-radius:8px;padding:10px 14px;font-size:0.82rem;opacity:.9;">
+                 Subscribe to chat with Diya
+              </div>
+              <button type="button" class="btn-note" @click="openNotesModal()">Make notes</button>
             </div>
           </template>
         </div>
 
-        <!-- Subjects / progress -->
+        <!-- Find teacher -->
         <div class="card">
           <div class="card-header">
-            <span class="card-title">📈 My subjects</span>
+            <span class="card-title"> Find teacher</span>
+          </div>
+          <div class="card-body">
+            <div style="font-size:.85rem;color:var(--ink-lt);line-height:1.5;margin-bottom:12px;">
+              Browse verified teachers, review their batches, and send tuition requests.
+            </div>
+            <a href="/find-teachers.html" style="display:inline-flex;align-items:center;gap:6px;background:var(--saffron);color:white;padding:10px 16px;border-radius:10px;font-size:0.85rem;font-weight:700;text-decoration:none;">
+              Open Find Teacher
+            </a>
+          </div>
+        </div>
+
+        <!-- My teachers -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title"> My teachers</span>
+            <a href="/find-teachers.html" class="card-link">Find teacher</a>
           </div>
           <div class="card-body">
             <template x-if="loading">
@@ -562,24 +1369,28 @@
                 </template>
               </div>
             </template>
-            <template x-if="!loading && (!profile?.subjects || profile.subjects.length === 0)">
+            <template x-if="!loading && (!teachers || teachers.length === 0)">
               <div class="empty">
-                <p style="margin-bottom:12px;">No subjects yet.</p>
+                <p style="margin-bottom:12px;">No teachers yet.</p>
                 <a href="/find-teachers.html" style="display:inline-flex;align-items:center;gap:6px;background:var(--saffron);color:white;padding:10px 18px;border-radius:10px;font-size:0.85rem;font-weight:600;text-decoration:none;transition:transform .2s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">
-                  🔍 Find a teacher
+                   Find a teacher
                 </a>
               </div>
             </template>
-            <template x-for="subj in (profile?.subjects || [])" :key="subj.name">
+            <template x-for="t in (teachers || [])" :key="t.id">
               <div style="padding:10px 0;border-bottom:1px solid var(--ivory-dk);">
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-                  <span style="font-size:.88rem;font-weight:600;" x-text="subj.name"></span>
-                  <span style="font-size:.78rem;color:var(--ink-lt);" x-text="(subj.score_pct ?? 0) + '%'"></span>
+                  <button
+                    type="button"
+                    style="font-size:.88rem;font-weight:600;border:none;background:none;color:var(--teal);padding:0;cursor:pointer;text-align:left;"
+                    @click="openTeacherActions(t)"
+                    :title="`Manage ${t.teacher_name}`"
+                    x-text="t.teacher_name"
+                  ></button>
+                  <span class="sub-pill active" style="padding:2px 8px;" x-show="t.teacher_is_verified">Verified</span>
                 </div>
-                <div class="progress-bar">
-                  <div class="progress-fill"
-                    :style="`width:${subj.score_pct??0}%;background:${subjectColor(subj.name)}`">
-                  </div>
+                <div style="font-size:.78rem;color:var(--ink-lt);">
+                  Subject: <span x-text="t.subject || 'General'"></span>
                 </div>
               </div>
             </template>
@@ -589,7 +1400,7 @@
         <!-- Badges -->
         <div class="card" x-show="profile?.badges?.length > 0">
           <div class="card-header">
-            <span class="card-title">🏅 Badges</span>
+            <span class="card-title"> Badges</span>
           </div>
           <div class="card-body" style="display:flex;flex-wrap:wrap;gap:8px;">
             <template x-for="badge in (profile?.badges || [])" :key="badge">
@@ -600,7 +1411,180 @@
 
       </div>
     </div>
+
+    <!-- Feedbacks table modal -->
+    <div class="modal-overlay" x-show="showFeedbacksModal" x-transition.opacity @click.self="showFeedbacksModal=false">
+      <div class="modal" style="max-width:960px;width:100%;background:white;border-radius:16px;padding:18px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h3 style="font-size:1.05rem;">Feedbacks</h3>
+          <button class="btn-cancel" style="padding:8px 12px;border:1px solid var(--ivory-dk);background:white;border-radius:8px;cursor:pointer;" @click="showFeedbacksModal=false">Close</button>
+        </div>
+        <div style="overflow:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
+            <thead>
+              <tr style="text-align:left;border-bottom:1px solid var(--ivory-dk);">
+                <th style="padding:8px;">Type</th>
+                <th style="padding:8px;">Title</th>
+                <th style="padding:8px;">Status</th>
+                <th style="padding:8px;">Feedback Provider</th>
+                <th style="padding:8px;">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-if="feedbackRows().length === 0">
+                <tr><td colspan="5" style="padding:12px;color:var(--ink-lt);">No feedback records yet.</td></tr>
+              </template>
+              <template x-for="row in feedbackRows()" :key="`${row.type}-${row.title}-${row.date}`">
+                <tr style="border-bottom:1px solid var(--ivory-dk);">
+                  <td style="padding:8px;" x-text="row.type"></td>
+                  <td style="padding:8px;" x-text="row.title"></td>
+                  <td style="padding:8px;" x-text="row.status"></td>
+                  <td style="padding:8px;" x-text="row.provider"></td>
+                  <td style="padding:8px;" x-text="row.date ? Utils.formatDateTime(row.date) : '-'"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assessment submit modal -->
+    <div class="modal-overlay" x-show="showAssessmentModal" x-transition.opacity @click.self="showAssessmentModal=false">
+      <div class="modal" style="max-width:760px;width:100%;background:white;border-radius:16px;padding:18px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <h3 style="font-size:1.05rem;">Submit Assessment</h3>
+          <button class="btn-cancel" style="padding:8px 12px;border:1px solid var(--ivory-dk);background:white;border-radius:8px;cursor:pointer;" @click="showAssessmentModal=false">Close</button>
+        </div>
+        <div style="font-size:.85rem;color:var(--ink-lt);margin-bottom:10px;" x-text="selectedAssessmentItem?.title || ''"></div>
+        <template x-if="assessmentAttempt && Array.isArray(assessmentAttempt.questions) && assessmentAttempt.questions.length > 0">
+          <div style="max-height:56vh;overflow:auto;padding-right:4px;">
+            <template x-for="q in assessmentAttempt.questions" :key="q.id">
+              <div style="border:1px solid var(--ivory-dk);border-radius:10px;padding:10px;margin-bottom:8px;">
+                <div style="font-size:.84rem;font-weight:700;margin-bottom:8px;">
+                  Q<span x-text="q.id"></span>. <span x-text="q.question"></span>
+                </div>
+                <template x-if="q.type === 'mcq' && Array.isArray(q.options)">
+                  <div>
+                    <template x-for="opt in q.options" :key="`${q.id}-${opt.key}`">
+                      <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;margin-bottom:6px;">
+                        <input type="radio" :name="`q-${q.id}`" :value="opt.key" x-model="assessmentAnswers[String(q.id)]" />
+                        <span x-text="`${opt.key}. ${opt.text}`"></span>
+                      </label>
+                    </template>
+                  </div>
+                </template>
+                <template x-if="q.type !== 'mcq'">
+                  <textarea
+                    x-model="assessmentAnswers[String(q.id)]"
+                    placeholder="Write your answer"
+                    style="width:100%;min-height:72px;border:1px solid var(--ivory-dk);border-radius:8px;padding:8px;"
+                  ></textarea>
+                </template>
+              </div>
+            </template>
+          </div>
+        </template>
+        <div style="font-size:.8rem;color:#b91c1c;min-height:16px;" x-text="assessmentError"></div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;">
+          <button class="btn-cancel" style="padding:8px 12px;border:1px solid var(--ivory-dk);background:white;border-radius:8px;cursor:pointer;" @click="showAssessmentModal=false">Cancel</button>
+          <button class="btn-create" style="padding:8px 12px;border:none;background:var(--teal);color:white;border-radius:8px;cursor:pointer;" @click="submitAssessmentNow()" :disabled="assessmentSubmitting || !assessmentAttempt" x-text="assessmentSubmitting ? 'Submitting...' : 'Submit assessment'"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Homework submit modal -->
+    <div class="modal-overlay" x-show="showHomeworkSubmitModal" x-transition.opacity @click.self="showHomeworkSubmitModal=false">
+      <div class="modal" style="max-width:560px;width:100%;background:white;border-radius:16px;padding:18px;">
+        <h3 style="font-size:1.05rem;margin-bottom:10px;">Submit Homework</h3>
+        <div style="font-size:.85rem;font-weight:600;margin-bottom:8px;" x-text="selectedHomeworkForSubmit?.title || ''"></div>
+        <div style="margin-bottom:10px;">
+          <label style="display:block;font-size:.8rem;color:var(--ink-lt);margin-bottom:6px;">Your answer</label>
+          <textarea x-model="homeworkSubmissionText" style="width:100%;min-height:100px;border:1px solid var(--ivory-dk);border-radius:8px;padding:10px;"></textarea>
+        </div>
+        <div style="margin-bottom:10px;">
+          <label style="display:block;font-size:.8rem;color:var(--ink-lt);margin-bottom:6px;">Upload file (optional)</label>
+          <input type="file" accept=".pdf,.docx,image/*" @change="handleHomeworkSubmissionFile($event)" />
+          <div style="font-size:.75rem;color:var(--ink-lt);margin-top:5px;">Allowed: PDF, DOCX, images. Max 1 MB.</div>
+        </div>
+        <div style="font-size:.8rem;color:#b91c1c;min-height:16px;" x-text="homeworkSubmissionError"></div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;">
+          <button class="btn-cancel" style="padding:8px 12px;border:1px solid var(--ivory-dk);background:white;border-radius:8px;cursor:pointer;" @click="showHomeworkSubmitModal=false">Cancel</button>
+          <button class="btn-create" style="padding:8px 12px;border:none;background:var(--teal);color:white;border-radius:8px;cursor:pointer;" @click="submitHomeworkNow()" :disabled="homeworkSubmissionSaving" x-text="homeworkSubmissionSaving ? 'Submitting…' : 'Submit'"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes making modal -->
+    <div class="modal-overlay" x-show="showNotesModal" x-transition.opacity @click.self="showNotesModal=false">
+      <div class="modal-card" @click.stop>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <h3 style="font-size:1.05rem;">Make Notes with Diya</h3>
+          <button class="btn-cancel" style="padding:8px 12px;border:1px solid var(--ivory-dk);background:white;border-radius:8px;cursor:pointer;" @click="showNotesModal=false">Close</button>
+        </div>
+        <p style="font-size:.83rem;color:var(--ink-lt);margin-bottom:12px;">
+          Required: subject, standard, chapter/lesson, and chapter upload. Past exam questions are optional.
+        </p>
+
+        <div class="form-grid">
+          <div class="form-row">
+            <label class="form-label">Subject *</label>
+            <input class="form-input" x-model="notesForm.subject" placeholder="Mathematics" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">Standard *</label>
+            <input class="form-input" type="number" min="1" max="12" x-model="notesForm.standard" placeholder="8" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label class="form-label">Chapter/Lesson *</label>
+          <input class="form-input" x-model="notesForm.chapter" placeholder="Linear Equations in One Variable" />
+        </div>
+
+        <div class="form-row">
+          <label class="form-label">Upload chapter *</label>
+          <input x-ref="notesChapterInput" type="file" accept=".txt,.md,.docx,.pdf" @change="handleNotesChapterFile($event)" />
+          <div style="font-size:.74rem;color:var(--ink-lt);margin-top:4px;" x-show="notesChapterFile?.name">Selected: <span x-text="notesChapterFile?.name"></span></div>
+          <div style="font-size:.74rem;color:var(--ink-lt);margin-top:5px;">Allowed: .txt, .md, .docx, .pdf (single chapter only, max 4 MB)</div>
+        </div>
+
+        <div class="form-row">
+          <label class="form-label">Upload past exam questions (optional)</label>
+          <input x-ref="notesExamInput" type="file" accept=".txt,.md,.docx,.pdf" @change="handleNotesExamFile($event)" />
+          <div style="font-size:.74rem;color:var(--ink-lt);margin-top:4px;" x-show="notesExamFile?.name">Selected: <span x-text="notesExamFile?.name"></span></div>
+          <div style="font-size:.74rem;color:var(--ink-lt);margin-top:5px;">Allowed: .txt, .md, .docx, .pdf (max 4 MB)</div>
+        </div>
+
+        <div style="font-size:.8rem;color:#b91c1c;min-height:18px;" x-text="notesError"></div>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;">
+          <button class="btn-cancel" style="padding:8px 12px;border:1px solid var(--ivory-dk);background:white;border-radius:8px;cursor:pointer;" @click="showNotesModal=false">Cancel</button>
+          <button class="btn-create" style="padding:8px 12px;border:none;background:var(--teal);color:white;border-radius:8px;cursor:pointer;" @click="generateNotesNow()" :disabled="notesGenerating" x-text="notesGenerating ? 'Generating...' : 'Generate notes'"></button>
+        </div>
+
+        <div x-show="notesResult?.notes_markdown" style="margin-top:14px;border-top:1px solid var(--ivory-dk);padding-top:12px;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:.75rem;color:var(--ink-lt);margin-bottom:8px;">
+            <span x-text="`Level ${notesResult?.understanding_level || 3}/5`"></span>
+            <span x-text="`Next request: ${notesResult?.next_allowed_at ? Utils.formatDateTime(notesResult.next_allowed_at) : '-'}`"></span>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:8px;">
+            <button
+              type="button"
+              class="btn-create"
+              style="padding:7px 11px;border:none;background:var(--saffron);color:white;border-radius:8px;cursor:pointer;"
+              @click="notesDownloadError=''; if(!downloadNotesPdf(notesResult)){ notesDownloadError='Download failed. Please try again.'; }"
+            >Download PDF</button>
+          </div>
+          <div style="font-size:.78rem;color:#b91c1c;min-height:16px;margin-bottom:6px;" x-text="notesDownloadError"></div>
+          <label class="form-label">Generated notes</label>
+          <div class="notes-rendered" x-html="notesHtml()"></div>
+        </div>
+      </div>
+    </div>
   </main>
 
 </body>
 </html>
+
+

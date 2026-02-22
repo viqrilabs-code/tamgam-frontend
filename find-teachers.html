@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Find a Teacher – TamGam</title>
+  <title>Find a Teacher - TamGam</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display@0;1&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js" defer></script>
   <script src="/shared/api.js"></script>
   <script src="/shared/auth.js"></script>
+  <script src="/shared/branding.js"></script>
   <style>
     :root {
       --saffron:#E8640C; --saffron-lt:#F5914A; --saffron-dk:#C04F06;
@@ -22,7 +23,7 @@
     body { font-family:'DM Sans',sans-serif; background:var(--cream); color:var(--ink); display:flex; min-height:100vh; }
     [x-cloak] { display:none !important; }
 
-    /* ── Sidebar ── */
+    /*  Sidebar  */
     .sidebar {
       width: var(--sidebar-w); flex-shrink: 0;
       background: var(--ink); min-height: 100vh;
@@ -62,13 +63,13 @@
     .logout-btn { margin-left:auto; background:none; border:none; color:rgba(255,255,255,.4); font-size:1rem; cursor:pointer; padding:4px; transition:color .2s; }
     .logout-btn:hover { color:white; }
 
-    /* ── Main ── */
+    /*  Main  */
     .main { flex:1; padding:36px 40px; min-height:100vh; overflow-y:auto; }
     .page-header { margin-bottom:32px; }
     .page-title { font-family:'DM Serif Display',serif; font-size:1.9rem; color:var(--ink); margin-bottom:6px; }
     .page-subtitle { font-size:0.9rem; color:var(--ink-lt); }
 
-    /* ── Filter Bar ── */
+    /*  Filter Bar  */
     .filter-bar {
       display:flex; gap:12px; flex-wrap:wrap;
       background:white; border-radius:16px;
@@ -93,10 +94,10 @@
     }
     .filter-btn:hover { background:var(--saffron-dk); transform:translateY(-1px); }
 
-    /* ── Grid ── */
+    /*  Grid  */
     .teachers-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:20px; }
 
-    /* ── Teacher Card ── */
+    /*  Teacher Card  */
     .teacher-card {
       background:white; border-radius:16px; padding:24px;
       box-shadow:0 2px 12px rgba(0,0,0,.06);
@@ -115,6 +116,17 @@
     .teacher-avatar-wrap img { width:100%; height:100%; object-fit:cover; }
     .teacher-info { flex:1; min-width:0; }
     .teacher-name { font-size:1rem; font-weight:600; color:var(--ink); display:flex; align-items:center; gap:6px; margin-bottom:3px; flex-wrap:wrap; }
+    .inline-profile-btn {
+      margin-left:auto;
+      font-size:.72rem;
+      font-weight:700;
+      text-decoration:none;
+      color:var(--teal);
+      border:1px solid var(--teal);
+      border-radius:999px;
+      padding:3px 8px;
+    }
+    .inline-profile-btn:hover { background:var(--teal); color:#fff; }
     .verified-badge { background:var(--gold); color:white; font-size:0.65rem; font-weight:700; padding:2px 7px; border-radius:5px; letter-spacing:.04em; }
     .teacher-school { font-size:0.8rem; color:var(--ink-lt); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .teacher-subjects { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
@@ -124,6 +136,9 @@
     .stat-value { font-size:1.05rem; font-weight:700; color:var(--ink); }
     .stat-label { font-size:0.7rem; color:var(--ink-lt); margin-top:2px; }
     .teacher-bio { font-size:0.82rem; color:var(--ink-lt); line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:16px; }
+    .class-times { margin-bottom:14px; padding:10px 12px; border:1px solid var(--ivory-dk); border-radius:10px; background:var(--cream); }
+    .class-times-title { font-size:0.72rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-lt); margin-bottom:6px; }
+    .class-times-item { font-size:0.8rem; color:var(--ink); line-height:1.5; }
     .request-btn {
       display:block; width:100%; padding:11px; border:none; border-radius:10px;
       font-family:inherit; font-size:0.88rem; font-weight:600; cursor:pointer;
@@ -132,11 +147,22 @@
       margin-top:auto; padding-top:12px; line-height:1.4;
       flex-shrink:0;
     }
+    .profile-btn {
+      display:inline-flex; align-items:center; justify-content:center;
+      width:100%; padding:10px; border-radius:10px; text-decoration:none;
+      border:1px solid var(--teal); color:var(--teal); font-size:0.84rem; font-weight:700;
+      margin-top:8px; transition:all .2s;
+    }
+    .profile-btn:hover { background:var(--teal); color:white; }
+    .batch-select {
+      width:100%; padding:10px 12px; border-radius:10px; border:1.5px solid var(--ivory-dk);
+      background:var(--cream); color:var(--ink); font-size:0.84rem; margin-top:8px;
+    }
     .request-btn:hover:not(:disabled) { background:var(--saffron-dk); transform:translateY(-1px); }
-    .request-btn:disabled { background:var(--ivory-dk); color:var(--ink-lt); cursor:not-allowed; transform:none; }
+    .request-btn:disabled { background:var(--ivory-dk); color:var(--ink-lt); cursor:default; transform:none; }
     .request-btn.sent { background:#e8f5e9; color:#2e7d32; cursor:default; }
 
-    /* ── Empty / Skeleton ── */
+    /*  Empty / Skeleton  */
     .empty-state { text-align:center; padding:60px 20px; color:var(--ink-lt); }
     .empty-icon { font-size:3rem; margin-bottom:16px; }
     .empty-title { font-size:1.1rem; font-weight:600; margin-bottom:8px; color:var(--ink); }
@@ -144,7 +170,7 @@
     @keyframes shimmer { to { background-position:-200% 0; } }
     .skel-card { background:white; border-radius:16px; padding:24px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
 
-    /* ── Modal ── */
+    /*  Modal  */
     .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px; animation:fadeIn .2s; }
     @keyframes fadeIn { from{opacity:0} to{opacity:1} }
     .modal { background:white; border-radius:20px; padding:32px; width:100%; max-width:460px; box-shadow:0 20px 60px rgba(0,0,0,.2); animation:slideUp .25s; }
@@ -164,7 +190,7 @@
     .btn-submit:hover:not(:disabled) { background:var(--saffron-dk); }
     .btn-submit:disabled { background:var(--ivory-dk); color:var(--ink-lt); cursor:not-allowed; }
 
-    /* ── Toast ── */
+    /*  Toast  */
     .toast { position:fixed; bottom:28px; right:28px; padding:14px 22px; border-radius:12px; font-size:0.88rem; font-weight:500; color:white; box-shadow:0 8px 24px rgba(0,0,0,.18); z-index:200; animation:slideUp .3s; }
     .toast.success { background:#2e7d32; }
     .toast.error   { background:#c62828; }
@@ -172,7 +198,7 @@
 </head>
 <body x-data="findTeachers()" x-init="init()">
 
-  <!-- ── Sidebar ── -->
+  <!--  Sidebar  -->
   <aside class="sidebar">
     <a href="/dashboard.html" class="sidebar-logo">
       <span class="flame"><img src="logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></span>
@@ -180,41 +206,56 @@
     </a>
     <div class="nav-section">
       <div class="nav-label">Learn</div>
-      <a href="/dashboard.html" class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
-      <a href="/find-teachers.html" class="nav-item active"><span class="nav-icon">🔍</span> Find a Teacher</a>
-      <a href="/community.html" class="nav-item"><span class="nav-icon">💬</span> Community</a>
-      <a href="/diya.html" class="nav-item"><span class="nav-icon">🦊</span> Ask Diya</a>
+      <a href="/dashboard.html" class="nav-item"><span class="nav-icon">D</span> Dashboard</a>
+      <a href="/find-teachers.html" class="nav-item active"><span class="nav-icon">F</span> Find a Teacher</a>
+      <a href="/community.html" class="nav-item"><span class="nav-icon">C</span> Community</a>
+      <a href="/diya.html" class="nav-item"><span class="nav-icon">A</span> Ask Diya</a>
     </div>
     <div class="nav-section" style="margin-top:8px;">
       <div class="nav-label">Account</div>
-      <a href="#" class="nav-item"><span class="nav-icon">👤</span> Profile</a>
-      <a href="/plans.html" class="nav-item"><span class="nav-icon">⭐</span> Subscription</a>
-      <a href="#" class="nav-item"><span class="nav-icon">🔔</span> Notifications</a>
+      <a href="#" class="nav-item"><span class="nav-icon">P</span> Profile</a>
+      <a href="/plans.html" class="nav-item"><span class="nav-icon">*</span> Subscription</a>
+      <a href="/plans.html" class="nav-item"><span class="nav-icon">N</span> Notifications</a>
     </div>
     <div class="sidebar-footer">
       <div class="user-chip">
         <div class="user-avatar" x-data x-text="($store.auth?.user?.full_name || 'S')[0].toUpperCase()"></div>
         <div class="user-info">
-          <div class="user-name" x-data x-text="$store.auth?.user?.full_name || '—'"></div>
-          <div class="user-role">Student <span style="color:var(--saffron);">⭐</span></div>
+          <div class="user-name" x-data x-text="$store.auth?.user?.full_name || ''"></div>
+          <div class="user-role">Student <span style="color:var(--saffron);">*</span></div>
         </div>
-        <button class="logout-btn" x-data @click="$store.auth.logout()" title="Log out">↗</button>
+        <button class="logout-btn" x-data @click="$store.auth.logout()" title="Log out">-></button>
       </div>
     </div>
   </aside>
 
-  <!-- ── Main ── -->
+  <!--  Main  -->
   <main class="main">
     <div class="page-header">
-      <h1 class="page-title">🔍 Find a Teacher</h1>
+      <h1 class="page-title">Find a Teacher</h1>
       <p class="page-subtitle">Browse verified teachers and send a tuition request</p>
     </div>
 
     <!-- Filter Bar -->
     <div class="filter-bar">
+      <div class="filter-group" style="flex:1.4;min-width:160px;">
+        <label class="filter-label">Teacher Name</label>
+        <input class="filter-input" type="text" placeholder="e.g. Surbhi"
+          x-model="filters.name" @keydown.enter="search()" />
+      </div>
+      <div class="filter-group" style="flex:1.3;min-width:170px;">
+        <label class="filter-label">Teacher Email</label>
+        <input class="filter-input" type="text" placeholder="e.g. teacher@mail.com"
+          x-model="filters.email" @keydown.enter="search()" />
+      </div>
+      <div class="filter-group" style="flex:1.2;min-width:160px;">
+        <label class="filter-label">School Name</label>
+        <input class="filter-input" type="text" placeholder="e.g. DPS"
+          x-model="filters.school" @keydown.enter="search()" />
+      </div>
       <div class="filter-group" style="flex:2;min-width:180px;">
         <label class="filter-label">Subject</label>
-        <input class="filter-input" type="text" placeholder="e.g. Mathematics, Science…"
+        <input class="filter-input" type="text" placeholder="e.g. Mathematics, Science..."
           x-model="filters.subject" @keydown.enter="search()" />
       </div>
       <div class="filter-group">
@@ -230,8 +271,8 @@
       <div class="filter-group">
         <label class="filter-label">Verified only</label>
         <select class="filter-select" x-model="filters.verified_only">
-          <option value="true">Yes</option>
           <option value="false">All teachers</option>
+          <option value="true">Yes</option>
         </select>
       </div>
       <button class="filter-btn" @click="search()">Search</button>
@@ -262,7 +303,7 @@
     <!-- Empty state -->
     <template x-if="!loading && teachers.length === 0">
       <div class="empty-state">
-        <div class="empty-icon">🎓</div>
+        <div class="empty-icon"></div>
         <div class="empty-title">No teachers found</div>
         <p>Try changing your filters or searching a different subject</p>
       </div>
@@ -285,9 +326,14 @@
               <div class="teacher-info">
                 <div class="teacher-name">
                   <span x-text="t.full_name"></span>
-                  <span class="verified-badge" x-show="t.is_verified">✓ Verified</span>
+                  <span class="verified-badge" x-show="t.is_verified">Verified</span>
+                  <a
+                    class="inline-profile-btn"
+                    :href="teacherProfileHref(t)"
+                    @click="cacheTeacherProfileId(t)"
+                  >Visit profile</a>
                 </div>
-                <div class="teacher-school" x-text="t.school_or_institution || 'Independent teacher'"></div>
+                <div class="teacher-school" x-text="t.school_or_institution || t.school_name || 'Independent teacher'"></div>
               </div>
             </div>
 
@@ -299,7 +345,7 @@
 
             <div class="teacher-stats">
               <div class="stat-item">
-                <div class="stat-value" x-text="t.experience_years ?? '—'"></div>
+                <div class="stat-value" x-text="t.experience_years ?? ''"></div>
                 <div class="stat-label">Yrs exp.</div>
               </div>
               <div class="stat-item">
@@ -307,18 +353,31 @@
                 <div class="stat-label">Students</div>
               </div>
               <div class="stat-item">
-                <div class="stat-value" x-text="t.average_rating ? t.average_rating.toFixed(1) + ' ★' : '—'"></div>
+                <div class="stat-value" x-text="t.average_rating ? t.average_rating.toFixed(1) + ' ' : ''"></div>
                 <div class="stat-label">Rating</div>
               </div>
             </div>
 
             <p class="teacher-bio" x-text="t.bio || 'No bio available.'"></p>
+            <template x-if="Array.isArray(t.upcoming_class_times) && t.upcoming_class_times.length > 0">
+              <div class="class-times">
+                <div class="class-times-title">Upcoming classes</div>
+                <template x-for="ts in t.upcoming_class_times.slice(0, 3)" :key="ts">
+                  <div class="class-times-item" x-text="formatClassTime(ts)"></div>
+                </template>
+              </div>
+            </template>
 
+            <select class="batch-select" x-model="selectedBatchByTeacher[t.id]">
+              <option value="">Choose batch (optional)</option>
+              <template x-for="b in (t.available_batches || [])" :key="b.id">
+                <option :value="b.id" x-text="b.name + (b.grade_level ? (' - Class ' + b.grade_level) : '')"></option>
+              </template>
+            </select>
             <button class="request-btn"
               :class="{ 'sent': sentTeacherIds[t.id] }"
-              :disabled="sentTeacherIds[t.id]"
-              @click="openModal(t)">
-              📩 Request Tuition
+              @click="handleRequestClick(t)">
+              <span x-text="sentTeacherIds[t.id] ? 'Withdraw Request' : 'Request Tuition'"></span>
             </button>
           </div>
         </template>
@@ -326,7 +385,7 @@
     </template>
   </main>
 
-  <!-- ── Request Modal ── -->
+  <!--  Request Modal  -->
   <div class="modal-overlay" x-show="modal.open" x-cloak @click.self="modal.open = false">
     <div class="modal" @click.stop>
       <div class="modal-title">Request Tuition</div>
@@ -335,7 +394,7 @@
       <div class="modal-field">
         <label class="modal-label">Subject *</label>
         <select class="modal-select" x-model="modal.subject">
-          <option value="">Select a subject…</option>
+          <option value="">Select a subject...</option>
           <template x-for="subj in (modal.teacher?.subjects || [])" :key="subj">
             <option :value="subj" x-text="subj"></option>
           </template>
@@ -344,9 +403,19 @@
       </div>
 
       <div class="modal-field">
+        <label class="modal-label">Batch (optional)</label>
+        <select class="modal-select" x-model="modal.batch_id">
+          <option value="">No batch preference</option>
+          <template x-for="b in (modal.teacher?.available_batches || [])" :key="b.id">
+            <option :value="b.id" x-text="b.name + (b.class_timing ? (' - ' + b.class_timing) : '')"></option>
+          </template>
+        </select>
+      </div>
+
+      <div class="modal-field">
         <label class="modal-label">Message (optional)</label>
         <textarea class="modal-textarea" x-model="modal.message"
-          placeholder="Introduce yourself — your grade, what you need help with, your goals…"
+          placeholder="Introduce yourself - your grade, what you need help with, your goals..."
           maxlength="500"></textarea>
       </div>
 
@@ -358,13 +427,13 @@
           :disabled="!modal.subject || modal.submitting"
           @click="submitRequest()">
           <span x-show="!modal.submitting">Send Request</span>
-          <span x-show="modal.submitting">Sending…</span>
+          <span x-show="modal.submitting">Sending...</span>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- ── Toast ── -->
+  <!--  Toast  -->
   <div class="toast success" x-show="toast.show && toast.type==='success'" x-text="toast.msg" x-cloak></div>
   <div class="toast error"   x-show="toast.show && toast.type==='error'"   x-text="toast.msg" x-cloak></div>
 
@@ -374,17 +443,23 @@
         loading: true,
         teachers: [],
         sentTeacherIds: {},  // plain object for Alpine reactivity
+        pendingRequestByTeacher: {},
+        selectedBatchByTeacher: {},
 
         filters: {
+          name: '',
+          email: '',
+          school: '',
           subject: '',
           min_exp: '',
-          verified_only: 'true',
+          verified_only: 'false',
         },
 
         modal: {
           open: false,
           teacher: null,
           subject: '',
+          batch_id: '',
           message: '',
           submitting: false,
           error: '',
@@ -404,13 +479,17 @@
         async search() {
           this.loading = true;
           try {
-            const data = await TG.Teachers.list();
+            const data = await TG.Teachers.list({
+              name: (this.filters.name || '').trim(),
+              email: (this.filters.email || '').trim(),
+              school: (this.filters.school || '').trim(),
+              subject: (this.filters.subject || '').trim(),
+              verified_only: this.filters.verified_only === 'true' ? 'true' : 'false',
+              limit: '100',
+            });
             let results = Array.isArray(data) ? data : [];
 
             // client-side filters
-            if (this.filters.verified_only === 'true') {
-              results = results.filter(t => t.is_verified);
-            }
             if (this.filters.min_exp) {
               const min = parseInt(this.filters.min_exp);
               results = results.filter(t => (t.experience_years ?? 0) >= min);
@@ -428,8 +507,13 @@
             const requests = await TG.TuitionRequests.listMine('pending');
             if (Array.isArray(requests)) {
               const ids = {};
-            requests.forEach(r => { ids[r.counterparty_id] = true; });
-            this.sentTeacherIds = ids;
+              const byTeacher = {};
+              requests.forEach(r => {
+                ids[r.counterparty_id] = true;
+                byTeacher[r.counterparty_id] = r.id;
+              });
+              this.sentTeacherIds = ids;
+              this.pendingRequestByTeacher = byTeacher;
             }
           } catch {}
         },
@@ -439,10 +523,41 @@
             open: true,
             teacher,
             subject: teacher.subjects?.length === 1 ? teacher.subjects[0] : '',
+            batch_id: this.selectedBatchByTeacher?.[teacher.id] || '',
             message: '',
             submitting: false,
             error: '',
           };
+        },
+
+        handleRequestClick(teacher) {
+          if (this.sentTeacherIds[teacher.id]) {
+            this.withdrawRequest(teacher);
+            return;
+          }
+          this.openModal(teacher);
+        },
+
+        async withdrawRequest(teacher) {
+          const requestId = this.pendingRequestByTeacher[teacher.id];
+          if (!requestId) {
+            this.showToast('Pending request not found. Please refresh and try again.', 'error');
+            return;
+          }
+          const ok = window.confirm(`Withdraw your pending request to ${teacher.full_name}?`);
+          if (!ok) return;
+          try {
+            await TG.TuitionRequests.cancel(requestId);
+            const ids = { ...this.sentTeacherIds };
+            const byTeacher = { ...this.pendingRequestByTeacher };
+            delete ids[teacher.id];
+            delete byTeacher[teacher.id];
+            this.sentTeacherIds = ids;
+            this.pendingRequestByTeacher = byTeacher;
+            this.showToast(`Request withdrawn for ${teacher.full_name}.`, 'success');
+          } catch (e) {
+            this.showToast(e?.message || 'Failed to withdraw request. Please try again.', 'error');
+          }
         },
 
         async submitRequest() {
@@ -450,20 +565,27 @@
           this.modal.submitting = true;
           this.modal.error = '';
           try {
-            await TG.TuitionRequests.create({
+            const created = await TG.TuitionRequests.create({
               teacher_id: this.modal.teacher.id,
+              batch_id: this.modal.batch_id || null,
               subject: this.modal.subject,
               message: this.modal.message || null,
             });
             const teacherId = this.modal.teacher.id;
             const teacherName = this.modal.teacher.full_name;
             this.sentTeacherIds = { ...this.sentTeacherIds, [teacherId]: true };
+            if (created?.id) {
+              this.pendingRequestByTeacher = { ...this.pendingRequestByTeacher, [teacherId]: created.id };
+            }
             this.modal.open = false;
             this.showToast(`Request sent to ${teacherName}!`, 'success');
           } catch(e) {
             const detail = e?.detail;
+            const message = e?.message;
             if (typeof detail === 'object' && detail?.message) {
               this.modal.error = detail.message;
+            } else if (typeof message === 'string' && message.trim()) {
+              this.modal.error = message;
             } else {
               this.modal.error = typeof detail === 'string' ? detail : 'Failed to send request. Please try again.';
             }
@@ -475,8 +597,29 @@
           this.toast = { show: true, msg, type };
           setTimeout(() => this.toast.show = false, 3500);
         },
+
+        formatClassTime(value) {
+          const d = value ? new Date(value) : null;
+          if (!d || Number.isNaN(d.getTime())) return 'Time unavailable';
+          return d.toLocaleString([], {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+          });
+        },
+        teacherProfileHref(t) {
+          const id = t?.id ? encodeURIComponent(String(t.id)) : '';
+          return `/teacher-profile?teacher_id=${id}`;
+        },
+        cacheTeacherProfileId(t) {
+          if (!t?.id) return;
+          try { sessionStorage.setItem('tg_last_teacher_profile_id', String(t.id)); } catch {}
+        },
       };
     }
   </script>
 </body>
 </html>
+

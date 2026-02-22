@@ -9,6 +9,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js" defer></script>
   <script src="/shared/api.js"></script>
   <script src="/shared/auth.js"></script>
+  <script src="/shared/branding.js"></script>
   <style>
     :root {
       --saffron:#E8640C;--saffron-dk:#C04F06;
@@ -130,6 +131,12 @@
   </style>
 
   <script>
+    const ADMIN_API_BASE =
+      window.TAMGAM_API_BASE ||
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:8000/api/v1'
+        : '/api/v1');
+
     document.addEventListener('alpine:init', () => {
       Alpine.data('booksPage', () => ({
         dragOver: false,
@@ -213,7 +220,7 @@
           fd.append('auto_embed', this.autoEmbed);
           try {
             const token = TG.TokenStore.getAccess();
-            const res = await fetch('http://localhost:8000/api/v1/admin/books/upload', {
+            const res = await fetch(ADMIN_API_BASE + '/admin/books/upload', {
               method: 'POST',
               headers: { Authorization: 'Bearer ' + token },
               body: fd,
@@ -238,7 +245,7 @@
           this.booksLoading = true;
           try {
             const token = TG.TokenStore.getAccess();
-            let url = 'http://localhost:8000/api/v1/admin/books?limit=100';
+            let url = ADMIN_API_BASE + '/admin/books?limit=100';
             if (this.filterStatus) url += '&embed_status=' + this.filterStatus;
             if (this.filterSubject) url += '&subject=' + encodeURIComponent(this.filterSubject);
             const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token }});
@@ -256,7 +263,7 @@
           this.deletingId = id;
           try {
             const token = TG.TokenStore.getAccess();
-            await fetch('http://localhost:8000/api/v1/admin/books/' + id, {
+            await fetch(ADMIN_API_BASE + '/admin/books/' + id, {
               method: 'DELETE',
               headers: { Authorization: 'Bearer ' + token },
             });
@@ -281,7 +288,7 @@
           this.keyLoading = true;
           try {
             const token = TG.TokenStore.getAccess();
-            const res = await fetch('http://localhost:8000/api/v1/admin/books/key-status', {
+            const res = await fetch(ADMIN_API_BASE + '/admin/books/key-status', {
               headers: { Authorization: 'Bearer ' + token }
             });
             this.keyStatus = await res.json();
@@ -299,7 +306,7 @@
 
   <aside class="sidebar">
     <a href="/" class="sidebar-logo">
-      <span class="flame">🪔</span>
+      <span class="flame"><img src="/logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></span>
       <span class="sidebar-brand">TamGam<span class="admin-pill">Admin</span></span>
     </a>
     <div class="nav-section">
@@ -546,3 +553,4 @@
   </main>
 </body>
 </html>
+

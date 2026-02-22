@@ -9,6 +9,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js" defer></script>
   <script src="/shared/api.js"></script>
   <script src="/shared/auth.js"></script>
+  <script src="/shared/branding.js"></script>
   <style>
     .citations { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; padding: 0 4px; }
     .cite-label { font-size: .75rem; color: var(--ink-lt); font-weight: 600; }
@@ -476,7 +477,7 @@
           <div class="gate-icon"><img src="logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></div>
           <h3>Diya is waiting for you</h3>
           <p>Subscribe to unlock unlimited access to Diya — your AI tutor who answers questions from your exact class content, at your understanding level.</p>
-          <a href="#" class="btn-gate">Subscribe for ₹299/month →</a>
+          <a href="/plans.html" class="btn-gate">Subscribe to continue →</a>
         </div>
       </div>
     </template>
@@ -551,7 +552,7 @@
         <div class="input-area">
           <div class="input-box">
             <textarea
-              placeholder="Ask Diya anything about your classes…"
+              placeholder="Ask a school question for classes 8-10…"
               x-model="question"
               @keydown.enter="handleEnter($event)"
               rows="1"
@@ -562,7 +563,7 @@
               <span x-show="sending" class="spinner"></span>
             </button>
           </div>
-          <p class="input-hint">Diya answers only from your class content · Press Enter to send, Shift+Enter for new line</p>
+          <p class="input-hint">Diya answers only education-related questions for standards 8-10 · Press Enter to send, Shift+Enter for new line</p>
         </div>
 
       </div>

@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teacher Batches - TamGam</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js" defer></script>
+  <script src="/shared/api.js"></script>
+  <script src="/shared/auth.js"></script>
+  <style>
+    :root { --saffron:#E8640C; --teal:#0D5C63; --ink:#1A1A2E; --cream:#FEFBF4; --line:#F0E4CC; --ivory:#FDF6EC; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:Arial, sans-serif; background:var(--cream); color:var(--ink); display:flex; min-height:100vh; }
+    .sidebar { width:240px; background:var(--teal); color:#fff; padding:24px 0; display:flex; flex-direction:column; }
+    .logo { padding:0 20px 18px; border-bottom:1px solid rgba(255,255,255,.12); font-size:1.35rem; font-weight:700; }
+    .nav { padding:14px; display:flex; flex-direction:column; gap:6px; }
+    .nav a { color:rgba(255,255,255,.8); text-decoration:none; padding:10px 12px; border-radius:8px; }
+    .nav a.active, .nav a:hover { background:rgba(255,255,255,.15); color:#fff; }
+    .main { flex:1; padding:28px; overflow:auto; }
+    .head { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+    .title { font-size:2rem; font-weight:800; }
+    .sub { color:#4b5563; margin-top:4px; }
+    .btn { border:none; border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer; }
+    .btn-teal { background:var(--teal); color:#fff; }
+    .btn-saf { background:var(--saffron); color:#fff; }
+    .btn-lite { background:var(--ivory); border:1px solid var(--line); color:var(--ink); }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(420px,1fr)); gap:14px; margin-top:14px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px; }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .name { font-size:1.05rem; font-weight:800; }
+    .meta { color:#4b5563; font-size:.86rem; margin-top:4px; }
+    .tag { font-size:.72rem; background:var(--ivory); border:1px solid var(--line); border-radius:999px; padding:3px 8px; }
+    .sec { margin-top:12px; padding-top:12px; border-top:1px solid var(--line); }
+    .sec h4 { font-size:.86rem; margin-bottom:8px; text-transform:uppercase; letter-spacing:.04em; }
+    .cls { display:flex; gap:8px; align-items:center; justify-content:space-between; border:1px solid var(--line); border-radius:10px; padding:8px; margin-bottom:8px; }
+    .cls-meta { font-size:.78rem; color:#4b5563; margin-top:2px; }
+    .empty { color:#6b7280; font-size:.84rem; padding:8px; border:1px dashed var(--line); border-radius:10px; }
+    .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; padding:18px; }
+    .modal { width:min(620px,100%); background:#fff; border-radius:16px; border:1px solid var(--line); padding:16px; }
+    .modal h3 { font-size:1.4rem; margin-bottom:10px; }
+    .fgrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .fgrid .full { grid-column:1 / -1; }
+    label { font-size:.8rem; font-weight:700; display:block; margin-bottom:4px; }
+    input, select, textarea { width:100%; border:1px solid var(--line); border-radius:8px; padding:9px 10px; font:inherit; background:var(--cream); }
+    textarea { min-height:70px; resize:vertical; }
+    .actions { display:flex; justify-content:flex-end; gap:8px; margin-top:12px; }
+    .err { color:#b91c1c; font-size:.82rem; min-height:18px; margin-top:8px; }
+  </style>
+</head>
+<body x-data="page()" x-init="init()">
+  <aside class="sidebar">
+    <div class="logo">TamGam</div>
+    <div class="nav">
+      <a href="/teacher-dashboard.html">Dashboard</a>
+      <a href="/teacher-batches.html" class="active">Batches</a>
+      <a href="/teacher-dashboard.html#my-students">My students</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="head">
+      <div>
+        <div class="title">Batches</div>
+        <div class="sub">Create and manage all your batches in one place.</div>
+      </div>
+      <button class="btn btn-teal" @click="openCreateBatch()">+ New batch</button>
+    </div>
+
+    <div class="grid">
+      <template x-if="!loading && batches.length===0">
+        <div class="card"><div class="empty">No batches yet. Create your first batch.</div></div>
+      </template>
+      <template x-for="b in batches" :key="b.id">
+        <div class="card">
+          <div class="row" style="justify-content:space-between;">
+            <div>
+              <div class="name" x-text="b.name"></div>
+              <div class="meta" x-text="'Class ' + (b.grade_level ?? '-') + ' | ' + (b.subject || 'General')"></div>
+            </div>
+            <div class="row">
+              <span class="tag" x-text="(b.member_count || 0) + ' students'"></span>
+              <span class="tag" x-text="b.class_timing || 'Timing not set'"></span>
+            </div>
+          </div>
+
+          <div class="sec">
+            <h4>Upcoming Class</h4>
+            <template x-if="upcomingForBatch(b)">
+              <div class="cls">
+                <div>
+                  <div style="font-weight:700;font-size:.86rem;" x-text="upcomingForBatch(b).title"></div>
+                  <div class="cls-meta" x-text="upcomingForBatch(b).meta"></div>
+                </div>
+                <div class="row">
+                  <button class="btn btn-lite" style="color:#b91c1c;" @click="cancelUpcomingForBatch(b)">Cancel</button>
+                </div>
+              </div>
+            </template>
+            <template x-if="!upcomingForBatch(b)">
+              <div class="empty">No upcoming class found from schedule.</div>
+            </template>
+          </div>
+
+          <div class="sec">
+            <h4>Batch Controls</h4>
+            <div class="row">
+              <button class="btn btn-saf" @click="openScheduleClass(b)">Create class</button>
+              <button class="btn btn-lite" @click="openStudyMaterial(b)">Upload study material</button>
+              <button class="btn btn-lite" @click="openAssignment(b)">Upload assignment</button>
+              <button class="btn btn-lite" @click="openAssessment(b)">Create assessment</button>
+              <button class="btn btn-lite" @click="openCancelDayModal(b)">Cancel day</button>
+              <button class="btn btn-lite" style="color:#b91c1c;" @click="openDeleteBatchModal(b)">Delete batch</button>
+            </div>
+          </div>
+
+          <div class="sec">
+            <h4>Scheduled Classes</h4>
+            <template x-if="batchClasses(b.id).length===0">
+              <div class="empty">No classes scheduled for this batch.</div>
+            </template>
+            <template x-for="cls in batchClasses(b.id)" :key="cls.id">
+              <div class="cls">
+                <div>
+                  <div style="font-weight:700;font-size:.86rem;" x-text="cls.title"></div>
+                  <div class="cls-meta" x-text="fmtDateTime(cls.scheduled_at) + ' | ' + (cls.duration_minutes||60) + ' min | ' + cls.status"></div>
+                </div>
+                <div class="row">
+                  <button class="btn btn-lite" @click="openRescheduleModal(cls)">Reschedule</button>
+                  <button class="btn btn-lite" style="color:#b91c1c;" @click="openCancelClassModal(cls)">Cancel class</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+    </div>
+  </main>
+
+  <div class="modal-bg" x-show="showCreateBatch" @click.self="showCreateBatch=false">
+    <div class="modal">
+      <h3>Create Batch</h3>
+      <div class="fgrid">
+        <div><label>Class</label><select x-model.number="create.grade"><option :value="8">Class 8</option><option :value="9">Class 9</option><option :value="10">Class 10</option></select></div>
+        <div><label>Batch name</label><input x-model="create.name" placeholder="e.g. Algebra A" /></div>
+        <div><label>Subject</label><input x-model="create.subject" placeholder="e.g. Mathematics" /></div>
+        <div><label>Class timing</label><input x-model="create.timing" placeholder="Mon/Wed/Fri 7:00 PM" /></div>
+        <div><label>Max students</label><input x-model.number="create.max_students" type="number" min="1" placeholder="empty = unlimited" /></div>
+        <div><label>Class days</label><input x-model="create.days_csv" placeholder="monday,wednesday,friday" /></div>
+        <div class="full"><label>Description</label><textarea x-model="create.description"></textarea></div>
+      </div>
+      <div class="err" x-text="error"></div>
+      <div class="actions">
+        <button class="btn btn-lite" @click="showCreateBatch=false">Cancel</button>
+        <button class="btn btn-teal" @click="createBatch()">Create batch</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-bg" x-show="showClassModal" @click.self="showClassModal=false">
+    <div class="modal">
+      <h3>Schedule Class</h3>
+      <div class="fgrid">
+        <div class="full"><label>Title</label><input x-model="classForm.title" placeholder="e.g. Algebra - Linear Equations" /></div>
+        <div><label>Subject</label><input x-model="classForm.subject" /></div>
+        <div><label>Date & time</label><input type="datetime-local" x-model="classForm.scheduled_at" /></div>
+        <div><label>Duration (minutes)</label><input type="number" min="15" max="480" x-model.number="classForm.duration" /></div>
+      </div>
+      <div class="err" x-text="error"></div>
+      <div class="actions">
+        <button class="btn btn-lite" @click="showClassModal=false">Cancel</button>
+        <button class="btn btn-teal" @click="submitClass()">Create class</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-bg" x-show="showHomeworkModal" @click.self="showHomeworkModal=false">
+    <div class="modal">
+      <h3 x-text="homeworkMode==='study' ? 'Upload Study Material' : 'Upload Assignment'"></h3>
+      <div class="fgrid">
+        <div class="full">
+          <label>Select class</label>
+          <select x-model="homeworkForm.class_id">
+            <option value="">Choose class</option>
+            <template x-for="cls in homeworkClasses" :key="cls.id">
+              <option :value="cls.id" x-text="cls.title + ' | ' + fmtDateTime(cls.scheduled_at)"></option>
+            </template>
+          </select>
+        </div>
+        <div class="full"><label>Title</label><input x-model="homeworkForm.title" /></div>
+        <div class="full"><label>Description</label><textarea x-model="homeworkForm.description"></textarea></div>
+        <div x-show="homeworkMode==='assignment'"><label>Due at</label><input type="datetime-local" x-model="homeworkForm.due_at" /></div>
+        <div class="full"><label>File</label><input type="file" @change="homeworkForm.file = $event.target.files?.[0] || null" /></div>
+      </div>
+      <div class="err" x-text="error"></div>
+      <div class="actions">
+        <button class="btn btn-lite" @click="showHomeworkModal=false">Cancel</button>
+        <button class="btn btn-teal" @click="submitHomework()">Upload</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-bg" x-show="showAssessmentModal" @click.self="showAssessmentModal=false">
+    <div class="modal">
+      <h3>Create Assessment</h3>
+      <div class="fgrid">
+        <div class="full">
+          <label>Select class</label>
+          <select x-model="assessmentForm.class_id">
+            <option value="">Choose class</option>
+            <template x-for="cls in assessmentClasses" :key="cls.id">
+              <option :value="cls.id" x-text="cls.title + ' | ' + fmtDateTime(cls.scheduled_at)"></option>
+            </template>
+          </select>
+        </div>
+        <div class="full"><label>Upload notes/transcript</label><input type="file" @change="assessmentForm.file = $event.target.files?.[0] || null" /></div>
+      </div>
+      <div class="err" x-text="error"></div>
+      <div class="actions">
+        <button class="btn btn-lite" @click="showAssessmentModal=false">Cancel</button>
+        <button class="btn btn-teal" @click="submitAssessment()">Generate</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-bg" x-show="showRescheduleModal" @click.self="showRescheduleModal=false">
+    <div class="modal">
+      <h3>Reschedule Class</h3>
+      <div class="fgrid">
+        <div class="full">
+          <label>Class</label>
+          <input :value="rescheduleTarget?.title || ''" disabled />
+        </div>
+        <div>
+          <label>New date & time</label>
+          <input type="datetime-local" x-model="rescheduleForm.scheduled_at" />
+        </div>
+        <div>
+          <label>Duration (minutes)</label>
+          <input type="number" min="15" max="480" x-model.number="rescheduleForm.duration" />
+        </div>
+      </div>
+      <div class="err" x-text="error"></div>
+      <div class="actions">
+        <button class="btn btn-lite" @click="showRescheduleModal=false">Cancel</button>
+        <button class="btn btn-teal" @click="submitReschedule()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-bg" x-show="showCancelClassModal" @click.self="showCancelClassModal=false">
+    <div class="modal">
+      <h3>Cancel Class</h3>
+      <p style="color:#4b5563;margin-bottom:10px;">This will notify all students enrolled in this batch/class.</p>
+      <div class="fgrid">
+        <div class="full">
+          <label>Class</label>
+          <input :value="cancelClassTarget?.title || ''" disabled />
+        </div>
+      </div>
+      <div class="err" x-text="error"></div>
+      <div class="actions">
+        <button class="btn btn-lite" @click="showCancelClassModal=false">Back</button>
+        <button class="btn btn-saf" @click="submitCancelClass()">Confirm cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-bg" x-show="showCancelDayModal" @click.self="showCancelDayModal=false">
+    <div class="modal">
+      <h3>Cancel Batch Day</h3>
+      <p style="color:#4b5563;margin-bottom:10px;">All students in this batch will be notified.</p>
+      <div class="fgrid">
+        <div>
+          <label>Day</label>
+          <select x-model="cancelDayForm.day">
+            <option value="monday">Monday</option>
+            <option value="tuesday">Tuesday</option>
+            <option value="wednesday">Wednesday</option>
+            <option value="thursday">Thursday</option>
+            <option value="friday">Friday</option>
+            <option value="saturday">Saturday</option>
+            <option value="sunday">Sunday</option>
+          </select>
+        </div>
+        <div class="full">
+          <label>Note (optional)</label>
+          <textarea x-model="cancelDayForm.note" placeholder="Reason for cancellation"></textarea>
+        </div>
+      </div>
+      <div class="err" x-text="error"></div>
+      <div class="actions">
+        <button class="btn btn-lite" @click="showCancelDayModal=false">Back</button>
+        <button class="btn btn-saf" @click="submitCancelDay()">Cancel this day</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-bg" x-show="showDeleteBatchModal" @click.self="showDeleteBatchModal=false">
+    <div class="modal">
+      <h3>Delete Batch</h3>
+      <p style="color:#4b5563;margin-bottom:10px;">This will deactivate the batch and hide it from students.</p>
+      <div class="fgrid">
+        <div class="full">
+          <label>Batch</label>
+          <input :value="deleteBatchTarget?.name || ''" disabled />
+        </div>
+      </div>
+      <div class="err" x-text="error"></div>
+      <div class="actions">
+        <button class="btn btn-lite" @click="showDeleteBatchModal=false">Back</button>
+        <button class="btn btn-saf" @click="submitDeleteBatch()">Delete batch</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function page() {
+      return {
+        loading: true,
+        batches: [],
+        classes: [],
+        error: '',
+        showCreateBatch: false,
+        showClassModal: false,
+        showHomeworkModal: false,
+        showAssessmentModal: false,
+        showRescheduleModal: false,
+        showCancelClassModal: false,
+        showCancelDayModal: false,
+        showDeleteBatchModal: false,
+        selectedBatch: null,
+        rescheduleTarget: null,
+        cancelClassTarget: null,
+        deleteBatchTarget: null,
+        cancelDayTarget: null,
+        homeworkMode: 'study',
+        create: { grade: 8, name: '', subject: '', timing: '', max_students: null, days_csv: '', description: '' },
+        classForm: { title: '', subject: '', scheduled_at: '', duration: 60 },
+        homeworkForm: { class_id: '', title: '', description: '', due_at: '', file: null },
+        assessmentForm: { class_id: '', file: null },
+        rescheduleForm: { scheduled_at: '', duration: 60 },
+        cancelDayForm: { day: 'monday', note: '' },
+
+        async init() {
+          Guards.requireTeacher();
+          await this.load();
+        },
+        async load() {
+          this.loading = true;
+          this.error = '';
+          try {
+            const [b, c] = await Promise.all([TG.Classes.listBatches({}), TG.Classes.getMine()]);
+            this.batches = Array.isArray(b?.batches) ? b.batches.filter(x => x.is_active !== false) : [];
+            this.classes = Array.isArray(c?.classes) ? c.classes : [];
+          } catch (e) {
+            this.error = e?.message || 'Failed to load batches.';
+          } finally {
+            this.loading = false;
+          }
+        },
+        fmtDateTime(v) { return Utils.formatDateTime(v); },
+        toDatetimeLocal(v) {
+          const d = new Date(v);
+          const pad = (n) => String(n).padStart(2, '0');
+          return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        },
+        weekdayIndex(day) {
+          const map = { sunday:0, monday:1, tuesday:2, wednesday:3, thursday:4, friday:5, saturday:6 };
+          return map[String(day || '').toLowerCase()] ?? null;
+        },
+        parseTimeFromBatch(batch) {
+          const text = String(batch?.class_timing || '').trim();
+          const ampm = text.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
+          if (ampm) {
+            let hour = Number(ampm[1]);
+            const minute = Number(ampm[2] || 0);
+            const ap = ampm[3].toLowerCase();
+            if (ap === 'pm' && hour < 12) hour += 12;
+            if (ap === 'am' && hour === 12) hour = 0;
+            return { hour, minute };
+          }
+          const hhmm = text.match(/(\d{1,2}):(\d{2})/);
+          if (hhmm) return { hour: Number(hhmm[1]), minute: Number(hhmm[2]) };
+          return { hour: 10, minute: 0 };
+        },
+        resolveBatchDays(batch) {
+          const days = Array.isArray(batch?.class_days) ? batch.class_days.map(d => String(d).toLowerCase()) : [];
+          if (days.length) return days;
+          const text = String(batch?.class_timing || '').toLowerCase();
+          const all = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+          const short = { mon:'monday', tue:'tuesday', wed:'wednesday', thu:'thursday', fri:'friday', sat:'saturday', sun:'sunday' };
+          const found = [];
+          for (const d of all) if (text.includes(d)) found.push(d);
+          for (const [k,v] of Object.entries(short)) if (text.includes(k) && !found.includes(v)) found.push(v);
+          return found;
+        },
+        nextScheduledDate(batch) {
+          const days = this.resolveBatchDays(batch);
+          if (!days.length) return null;
+          const cancelled = new Set((batch?.cancelled_days || []).map(x => String(x).toLowerCase()));
+          const { hour, minute } = this.parseTimeFromBatch(batch);
+          const now = new Date();
+          let best = null;
+          let bestDay = null;
+          for (const day of days) {
+            if (cancelled.has(day)) continue;
+            const idx = this.weekdayIndex(day);
+            if (idx == null) continue;
+            const candidate = new Date(now);
+            const diff = (idx - now.getDay() + 7) % 7;
+            candidate.setDate(now.getDate() + diff);
+            candidate.setHours(hour, minute, 0, 0);
+            if (candidate <= now) candidate.setDate(candidate.getDate() + 7);
+            if (!best || candidate < best) { best = candidate; bestDay = day; }
+          }
+          if (!best) return null;
+          return { date: best, day: bestDay };
+        },
+        batchClasses(batchId) {
+          return (this.classes || [])
+            .filter(c => String(c.batch_id || '') === String(batchId || '') && c.status !== 'cancelled')
+            .sort((a,b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+        },
+        upcomingForBatch(batch) {
+          const now = new Date();
+          const scheduled = this.batchClasses(batch.id).filter(c => new Date(c.scheduled_at) > now);
+          if (scheduled.length) {
+            const cls = scheduled[0];
+            return {
+              type: 'class',
+              classId: cls.id,
+              title: cls.title || `${batch.name} class`,
+              meta: `${this.fmtDateTime(cls.scheduled_at)} | ${cls.duration_minutes || 60} min`,
+            };
+          }
+          const next = this.nextScheduledDate(batch);
+          if (!next) return null;
+          return {
+            type: 'batch_schedule',
+            day: next.day,
+            title: `${batch.name} (${(next.day || '').charAt(0).toUpperCase() + (next.day || '').slice(1)})`,
+            meta: `${next.date.toLocaleString()} | from batch schedule`,
+          };
+        },
+        async cancelUpcomingForBatch(batch) {
+          const up = this.upcomingForBatch(batch);
+          if (!up) return;
+          if (up.type === 'class') {
+            this.openCancelClassModal({ id: up.classId, title: up.title });
+            return;
+          }
+          this.openCancelDayModal(batch, up.day);
+        },
+        async ensureClassForBatch(batch) {
+          const existing = this.batchClasses(batch.id);
+          if (existing.length) return existing[0];
+          const next = this.nextScheduledDate(batch);
+          if (!next) return null;
+          const dt = new Date(next.date);
+          const iso = dt.toISOString();
+          await TG.Classes.create({
+            title: `${batch.name} class`,
+            subject: batch.subject || 'General',
+            description: null,
+            scheduled_at: iso,
+            duration_minutes: 60,
+            batch_id: batch.id,
+          });
+          const c = await TG.Classes.getMine();
+          this.classes = Array.isArray(c?.classes) ? c.classes : [];
+          return this.batchClasses(batch.id)[0] || null;
+        },
+        openCreateBatch() {
+          this.showCreateBatch = true;
+          this.error = '';
+        },
+        async createBatch() {
+          if (!this.create.name.trim()) { this.error = 'Batch name is required.'; return; }
+          const days = String(this.create.days_csv || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+          try {
+            await TG.Classes.createBatch({
+              name: this.create.name.trim(),
+              subject: this.create.subject?.trim() || null,
+              class_timing: this.create.timing?.trim() || null,
+              description: this.create.description?.trim() || null,
+              grade_level: this.create.grade,
+              max_students: this.create.max_students || null,
+              class_days: days,
+            });
+            this.showCreateBatch = false;
+            await this.load();
+          } catch (e) { this.error = e?.message || 'Could not create batch.'; }
+        },
+        openScheduleClass(batch) {
+          this.selectedBatch = batch;
+          this.classForm = { title: '', subject: batch.subject || '', scheduled_at: '', duration: 60 };
+          this.showClassModal = true;
+          this.error = '';
+        },
+        async submitClass() {
+          if (!this.selectedBatch?.id) return;
+          try {
+            await TG.Classes.create({
+              title: this.classForm.title || `${this.selectedBatch.name} class`,
+              subject: this.classForm.subject || this.selectedBatch.subject || 'General',
+              description: null,
+              scheduled_at: this.classForm.scheduled_at,
+              duration_minutes: Number(this.classForm.duration || 60),
+              batch_id: this.selectedBatch.id,
+            });
+            this.showClassModal = false;
+            await this.load();
+          } catch (e) { this.error = e?.message || 'Could not create class.'; }
+        },
+        openRescheduleModal(cls) {
+          this.rescheduleTarget = cls;
+          this.rescheduleForm = {
+            scheduled_at: this.toDatetimeLocal(cls.scheduled_at),
+            duration: Number(cls.duration_minutes || 60),
+          };
+          this.error = '';
+          this.showRescheduleModal = true;
+        },
+        async submitReschedule() {
+          if (!this.rescheduleTarget?.id) return;
+          if (!this.rescheduleForm.scheduled_at) { this.error = 'Please select date and time.'; return; }
+          try {
+            await TG.Classes.update(this.rescheduleTarget.id, {
+              scheduled_at: this.rescheduleForm.scheduled_at,
+              duration_minutes: Number(this.rescheduleForm.duration || 60),
+            });
+            this.showRescheduleModal = false;
+            await this.load();
+          } catch (e) { this.error = e?.message || 'Could not reschedule class.'; }
+        },
+        openCancelClassModal(cls) {
+          this.cancelClassTarget = cls;
+          this.error = '';
+          this.showCancelClassModal = true;
+        },
+        async submitCancelClass() {
+          const cls = this.cancelClassTarget;
+          if (!cls?.id) return;
+          try {
+            await TG.Classes.cancelClass(cls.id);
+            this.showCancelClassModal = false;
+            await this.load();
+          } catch (e) { this.error = e?.message || 'Could not cancel class.'; }
+        },
+        async openStudyMaterial(batch) {
+          this.selectedBatch = batch;
+          const first = await this.ensureClassForBatch(batch);
+          this.homeworkMode = 'study';
+          this.homeworkForm = { class_id: first?.id || '', title: `Study material: ${batch.name}`, description: '', due_at: '', file: null };
+          this.showHomeworkModal = true;
+          this.error = '';
+        },
+        async openAssignment(batch) {
+          this.selectedBatch = batch;
+          const first = await this.ensureClassForBatch(batch);
+          this.homeworkMode = 'assignment';
+          this.homeworkForm = { class_id: first?.id || '', title: `Assignment: ${batch.name}`, description: '', due_at: '', file: null };
+          this.showHomeworkModal = true;
+          this.error = '';
+        },
+        get homeworkClasses() {
+          if (!this.selectedBatch?.id) return [];
+          return this.batchClasses(this.selectedBatch.id);
+        },
+        async submitHomework() {
+          if (!this.homeworkForm.class_id) { this.error = 'Please choose class.'; return; }
+          try {
+            await TG.Homework.createForClass(this.homeworkForm.class_id, {
+              title: this.homeworkForm.title || (this.homeworkMode === 'study' ? 'Study material' : 'Assignment'),
+              description: this.homeworkForm.description || null,
+              due_at: this.homeworkMode === 'assignment' ? (this.homeworkForm.due_at || null) : null,
+            }, this.homeworkForm.file || null);
+            this.showHomeworkModal = false;
+          } catch (e) { this.error = e?.message || 'Upload failed.'; }
+        },
+        async openAssessment(batch) {
+          this.selectedBatch = batch;
+          const first = await this.ensureClassForBatch(batch);
+          this.assessmentForm = { class_id: first?.id || '', file: null };
+          this.showAssessmentModal = true;
+          this.error = '';
+        },
+        get assessmentClasses() {
+          if (!this.selectedBatch?.id) return [];
+          return this.batchClasses(this.selectedBatch.id);
+        },
+        async submitAssessment() {
+          if (!this.assessmentForm.class_id || !this.assessmentForm.file) {
+            this.error = 'Choose class and upload notes/transcript file.';
+            return;
+          }
+          try {
+            await TG.Assessments.createFromUpload(this.assessmentForm.class_id, this.assessmentForm.file);
+            this.showAssessmentModal = false;
+          } catch (e) { this.error = e?.message || 'Assessment generation failed.'; }
+        },
+        openCancelDayModal(batch, suggestedDay = null) {
+          this.cancelDayTarget = batch;
+          this.cancelDayForm = {
+            day: String(suggestedDay || 'monday').toLowerCase(),
+            note: '',
+          };
+          this.error = '';
+          this.showCancelDayModal = true;
+        },
+        async submitCancelDay() {
+          if (!this.cancelDayTarget?.id) return;
+          try {
+            await TG.Classes.cancelBatchDay(
+              this.cancelDayTarget.id,
+              String(this.cancelDayForm.day || '').toLowerCase().trim(),
+              this.cancelDayForm.note?.trim() || null
+            );
+            this.showCancelDayModal = false;
+            await this.load();
+          } catch (e) { this.error = e?.message || 'Could not cancel day.'; }
+        },
+        openDeleteBatchModal(batch) {
+          this.deleteBatchTarget = batch;
+          this.error = '';
+          this.showDeleteBatchModal = true;
+        },
+        async submitDeleteBatch() {
+          const batch = this.deleteBatchTarget;
+          if (!batch?.id) return;
+          try {
+            await TG.Classes.deleteBatch(batch.id);
+            this.showDeleteBatchModal = false;
+            await this.load();
+          } catch (e) { this.error = e?.message || 'Could not delete batch.'; }
+        },
+      };
+    }
+  </script>
+</body>
+</html>

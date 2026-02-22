@@ -18,6 +18,11 @@ document.addEventListener('alpine:init', () => {
     get isStudent()          { return this.user?.role === 'student'; },
     get isTeacher()          { return this.user?.role === 'teacher'; },
     get isAdmin()            { return this.user?.role === 'admin'; },
+    get dashboardPath()      {
+      if (this.user?.role === 'teacher') return '/teacher-dashboard.html';
+      if (this.user?.role === 'admin') return '/admin.html';
+      return '/dashboard.html';
+    },
     get isSubscribed()       { return this.user?.is_subscribed === true; },
     get isVerifiedTeacher()  { return this.user?.is_verified_teacher === true; },
     get firstName()          {
@@ -45,6 +50,25 @@ document.addEventListener('alpine:init', () => {
         const d = await TG.Notifications.getUnreadCount();
         this.count = d?.count ?? 0;
       } catch {}
+    },
+    async markAllRead() {
+      if (!TG.TokenStore.isLoggedIn()) return;
+      this.count = 0;
+      try {
+        await TG.Notifications.markAllRead();
+      } catch {}
+      try {
+        await this.fetch();
+      } catch {}
+    },
+    async openAndGo(target) {
+      await this.markAllRead();
+      if (!target) return;
+      if (target.startsWith('#')) {
+        window.location.hash = target;
+      } else {
+        window.location.href = target;
+      }
     },
   });
 
