@@ -10,8 +10,8 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-  <script src="/shared/api.js"></script>
-  <script src="/shared/auth.js"></script>
+  <script src="/shared/api.js?v=20260222-4"></script>
+  <script src="/shared/auth.js?v=20260222-4"></script>
   <script src="/shared/branding.js"></script>
   <style>
     :root {
@@ -515,6 +515,8 @@
       notesChapterFile: null,
       notesExamFile: null,
       notesGenerating: false,
+      notesProgress: 0,
+      notesProgressTimer: null,
       notesError: '',
       notesDownloadError: '',
       notesResult: null,
@@ -533,7 +535,7 @@
         try {
           const [p, c, n, a, h, e, s] = await Promise.allSettled([
             TG.Students.getMe(),
-            TG.Classes.list({ limit: 200 }),
+            TG.Classes.list({ limit: 100 }),
             TG.Notes.getForClass ? Promise.resolve([]) : Promise.resolve([]),
             TG.Assessments.getHistory(),
             TG.Homework.listStudentFeed(),
@@ -768,8 +770,30 @@
       },
 
       openNotesModal() {
-        this.showNotesModal = false;
-        alert('Make Notes is currently in beta and under development. It will be available soon.');
+        this.notesError = '';
+        this.notesDownloadError = '';
+        this.notesGenerating = false;
+        this.stopNotesProgress();
+        this.notesProgress = 0;
+        this.notesResult = null;
+        this.showNotesModal = true;
+      },
+
+      startNotesProgress() {
+        this.stopNotesProgress();
+        this.notesProgress = 8;
+        this.notesProgressTimer = setInterval(() => {
+          if (!this.notesGenerating) return;
+          const next = this.notesProgress + Math.floor(Math.random() * 7) + 2;
+          this.notesProgress = Math.min(92, next);
+        }, 450);
+      },
+
+      stopNotesProgress() {
+        if (this.notesProgressTimer) {
+          clearInterval(this.notesProgressTimer);
+          this.notesProgressTimer = null;
+        }
       },
 
       handleNotesChapterFile(event) {
@@ -810,6 +834,7 @@
           return;
         }
         this.notesGenerating = true;
+        this.startNotesProgress();
         this.notesError = '';
         this.notesDownloadError = '';
         this.notesResult = null;
@@ -829,6 +854,8 @@
         } catch (e) {
           this.notesError = e?.message || 'Failed to generate notes.';
         } finally {
+          this.notesProgress = this.notesError ? 0 : 100;
+          this.stopNotesProgress();
           this.notesGenerating = false;
         }
       },
@@ -863,6 +890,24 @@
 
       downloadNotesPdf(result) {
         try {
+          const pdfB64 = String(result?.notes_pdf_base64 || '').trim();
+          if (pdfB64) {
+            const binary = atob(pdfB64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            const blob = new Blob([bytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const title = `${result?.subject || 'Notes'} - Class ${result?.standard || ''} - ${result?.chapter || ''}`.trim();
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${title.replace(/[^a-zA-Z0-9 ._-]+/g, ' ').trim() || 'notes'}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            return true;
+          }
+
           const jspdfNS = window.jspdf || {};
           const JsPdfCtor = jspdfNS.jsPDF;
           const title = `${result?.subject || 'Notes'} - Class ${result?.standard || ''} - ${result?.chapter || ''}`.trim();
@@ -1557,6 +1602,14 @@
         </div>
 
         <div style="font-size:.8rem;color:#b91c1c;min-height:18px;" x-text="notesError"></div>
+        <div x-show="notesGenerating" style="margin:6px 0 12px 0;">
+          <div style="height:8px;border-radius:999px;background:var(--ivory-dk);overflow:hidden;">
+            <div style="height:100%;background:linear-gradient(90deg,var(--teal),var(--teal-lt));transition:width .35s ease;" :style="`width:${notesProgress}%`"></div>
+          </div>
+          <div style="font-size:.74rem;color:var(--ink-lt);margin-top:5px;">
+            Generating notes... <span x-text="`${Math.round(notesProgress)}%`"></span>
+          </div>
+        </div>
 
         <div style="display:flex;justify-content:flex-end;gap:8px;">
           <button class="btn-cancel" style="padding:8px 12px;border:1px solid var(--ivory-dk);background:white;border-radius:8px;cursor:pointer;" @click="showNotesModal=false">Cancel</button>
@@ -1568,6 +1621,9 @@
             <span x-text="`Level ${notesResult?.understanding_level || 3}/5`"></span>
             <span x-text="`Next request: ${notesResult?.next_allowed_at ? Utils.formatDateTime(notesResult.next_allowed_at) : '-'}`"></span>
           </div>
+          <div style="font-size:.82rem;color:var(--ink-lt);margin-bottom:8px;">
+            Notes generated successfully. Preview is hidden.
+          </div>
           <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:8px;">
             <button
               type="button"
@@ -1577,8 +1633,6 @@
             >Download PDF</button>
           </div>
           <div style="font-size:.78rem;color:#b91c1c;min-height:16px;margin-bottom:6px;" x-text="notesDownloadError"></div>
-          <label class="form-label">Generated notes</label>
-          <div class="notes-rendered" x-html="notesHtml()"></div>
         </div>
       </div>
     </div>

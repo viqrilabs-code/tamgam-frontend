@@ -2,16 +2,30 @@
 // Central API layer for TamGam frontend
 // All HTTP calls go through here — handles auth headers, token refresh, errors
 
-const _isLocalHost =
-  window.location.hostname === 'localhost' ||
-  window.location.hostname === '127.0.0.1';
+function _isLikelyLocalDevHost(hostname) {
+  if (!hostname) return false;
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0' || hostname === '::1') {
+    return true;
+  }
+  if (hostname.endsWith('.local')) return true;
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+  const m = hostname.match(/^172\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/);
+  if (m) {
+    const second = Number(m[1]);
+    if (second >= 16 && second <= 31) return true;
+  }
+  return false;
+}
 
-const API_BASE = window.TAMGAM_API_BASE || '/api/v1';
+const _isLocalHost = _isLikelyLocalDevHost(window.location.hostname);
+
 const LOCAL_API_FALLBACKS = [
   `http://${window.location.hostname}:8000/api/v1`,
   'http://localhost:8000/api/v1',
   'http://127.0.0.1:8000/api/v1',
 ];
+const API_BASE = window.TAMGAM_API_BASE || (_isLocalHost ? LOCAL_API_FALLBACKS[0] : '/api/v1');
 
 // ── Token Management ──────────────────────────────────────────────────────────
 
@@ -75,12 +89,15 @@ async function _request(method, path, body = null, opts = {}) {
   }
 
   // Local dev fallback when relative /api route returns 404 on frontend server.
-  if (
+  const canRetry404 =
     res.status === 404 &&
-    !window.TAMGAM_API_BASE &&
     _isLocalHost &&
-    API_BASE.startsWith('/')
-  ) {
+    (
+      API_BASE.startsWith('/') ||
+      (typeof window.TAMGAM_API_BASE === 'string' &&
+        window.TAMGAM_API_BASE.startsWith(`${window.location.origin}/`))
+    );
+  if (canRetry404) {
     const nextIndex = opts._fallbackIndex == null ? 0 : opts._fallbackIndex + 1;
     if (nextIndex < LOCAL_API_FALLBACKS.length) {
       return _request(method, path, body, {
