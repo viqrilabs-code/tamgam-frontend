@@ -2,11 +2,16 @@
 // Central API layer for TamGam frontend
 // All HTTP calls go through here — handles auth headers, token refresh, errors
 
-const API_BASE =
-  window.TAMGAM_API_BASE ||
-  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:8000/api/v1'
-    : '/api/v1');
+const _isLocalHost =
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1';
+
+const API_BASE = window.TAMGAM_API_BASE || '/api/v1';
+const LOCAL_API_FALLBACKS = [
+  `http://${window.location.hostname}:8000/api/v1`,
+  'http://localhost:8000/api/v1',
+  'http://127.0.0.1:8000/api/v1',
+];
 
 // ── Token Management ──────────────────────────────────────────────────────────
 
@@ -42,7 +47,8 @@ async function _request(method, path, body = null, opts = {}) {
   if (opts.headers) Object.assign(headers, opts.headers);
 
   let res;
-  const fullUrl = `${API_BASE}${path}`;
+  const base = opts._forceBase || API_BASE;
+  const fullUrl = `${base}${path}`;
   try {
     res = await fetch(fullUrl, {
       method,
@@ -51,10 +57,38 @@ async function _request(method, path, body = null, opts = {}) {
       ...opts,
     });
   } catch (e) {
-    const hint = `Network error calling ${fullUrl}. Check API server, CORS, mixed-content (http/https), and file:// origin.`;
+    // Local dev fallback when frontend host cannot resolve relative /api proxy.
+    if (!window.TAMGAM_API_BASE && _isLocalHost && API_BASE.startsWith('/')) {
+      const nextIndex = opts._fallbackIndex == null ? 0 : opts._fallbackIndex + 1;
+      if (nextIndex < LOCAL_API_FALLBACKS.length) {
+        return _request(method, path, body, {
+          ...opts,
+          _fallbackIndex: nextIndex,
+          _forceBase: LOCAL_API_FALLBACKS[nextIndex],
+        });
+      }
+    }
+    const hint = `Network error calling ${base}${path}. Check API server, CORS, mixed-content (http/https), and file:// origin. You can set window.TAMGAM_API_BASE explicitly.`;
     const err = new Error(`${e?.message || 'Fetch failed'}. ${hint}`);
     err.cause = e;
     throw err;
+  }
+
+  // Local dev fallback when relative /api route returns 404 on frontend server.
+  if (
+    res.status === 404 &&
+    !window.TAMGAM_API_BASE &&
+    _isLocalHost &&
+    API_BASE.startsWith('/')
+  ) {
+    const nextIndex = opts._fallbackIndex == null ? 0 : opts._fallbackIndex + 1;
+    if (nextIndex < LOCAL_API_FALLBACKS.length) {
+      return _request(method, path, body, {
+        ...opts,
+        _fallbackIndex: nextIndex,
+        _forceBase: LOCAL_API_FALLBACKS[nextIndex],
+      });
+    }
   }
 
   // Auto-refresh on 401
@@ -364,17 +398,25 @@ const Homework = {
 // ── Admin ─────────────────────────────────────────────────────────────────────
 
 const Admin = {
-  getStats:           ()        => get('/admin/stats'),
-  listUsers:          (p={})    => get(`/admin/users?${new URLSearchParams(p)}`),
-  getUser:            (id)      => get(`/admin/users/${id}`),
-  updateUser:         (id, b)   => patch(`/admin/users/${id}`, b),
-  listVerifications:  ()        => get('/admin/verifications/pending'),
-  approveVerification:(id)      => post(`/admin/verifications/${id}/approve`),
-  rejectVerification: (id, r)   => post(`/admin/verifications/${id}/reject`, { reason: r }),
-  listPlans:          ()        => get('/admin/subscription-plans'),
-  createPlan:         (b)       => post('/admin/subscription-plans', b),
-  updatePlan:         (id, b)   => patch(`/admin/subscription-plans/${id}`, b),
-  listWebhookLogs:    ()        => get('/admin/webhook-logs'),
+  getStats:              ()           => get('/admin/stats'),
+  listTeachers:          (p={})       => get(`/admin/teachers?${new URLSearchParams(p)}`),
+  setTeacherVerified:    (teacherId, isVerified) =>
+                           patch(`/admin/teachers/${teacherId}/verified`, { is_verified: !!isVerified }),
+  listUsers:             (p={})       => get(`/admin/users?${new URLSearchParams(p)}`),
+  setUserStatus:         (id, active) => patch(`/admin/users/${id}/status`, { is_active: !!active }),
+  listVerifications:     ()           => get('/admin/teachers/pending'),
+  verifyTeacher:         (teacherId, approved, rejectionReason = null, adminNotes = null) =>
+                           post(`/admin/teachers/${teacherId}/verify`, {
+                             approved: !!approved,
+                             rejection_reason: rejectionReason,
+                             admin_notes: adminNotes,
+                           }),
+  listSubscriptions:     (p={})       => get(`/admin/subscriptions?${new URLSearchParams(p)}`),
+  updateSubscription:    (id, payload={}) => patch(`/admin/subscriptions/${id}`, payload),
+  setSubscriptionCancel: (id, cancel) => patch(`/admin/subscriptions/${id}/control`, { cancel_at_period_end: !!cancel }),
+  listPayments:          (p={})       => get(`/admin/payments?${new URLSearchParams(p)}`),
+  updatePaymentStatus:   (id, status) => patch(`/admin/payments/${id}/status`, { status }),
+  listPlans:             ()           => get('/subscriptions/plans'),
 };
 
 // ── Export ────────────────────────────────────────────────────────────────────

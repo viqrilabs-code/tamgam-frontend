@@ -3,508 +3,565 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin — TamGam</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display@0;1&display=swap" rel="stylesheet" />
+  <title>Admin Control - TamGam</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js" defer></script>
-  <script src="/shared/api.js"></script>
-  <script src="/shared/auth.js"></script>
-  <script src="/shared/branding.js"></script>
+  <script>
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      // Force direct API host for local admin page when :3000 has no /api proxy.
+      window.TAMGAM_API_BASE = 'http://localhost:8000/api/v1';
+    }
+  </script>
+  <script src="/shared/api.js?v=20260222-3"></script>
+  <script src="/shared/auth.js?v=20260222-3"></script>
   <style>
     :root {
-      --saffron:#E8640C;--saffron-dk:#C04F06;
-      --teal:#0D5C63;--teal-lt:#1A8A94;
-      --ivory:#FDF6EC;--ivory-dk:#F0E4CC;
-      --ink:#1A1A2E;--ink-lt:#3D3D5C;
-      --gold:#D4A017;--cream:#FEFBF4;
-      --err:#DC2626;--ok:#059669;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --line: #e5e7eb;
+      --text: #111827;
+      --muted: #6b7280;
+      --brand: #0f766e;
+      --ok: #15803d;
+      --warn: #b45309;
+      --bad: #b91c1c;
     }
-    * { margin:0;padding:0;box-sizing:border-box; }
-    body { font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);display:flex;min-height:100vh; }
-
-    /* ── Sidebar ── */
-    .sidebar { width:220px;flex-shrink:0;background:var(--ink);min-height:100vh;padding:24px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto; }
-    .sidebar-logo { padding:0 20px 24px;display:flex;align-items:center;gap:8px;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:16px; }
-    .flame { font-size:20px;animation:flicker 3s ease-in-out infinite; }
-    @keyframes flicker { 0%,100%{filter:drop-shadow(0 0 8px rgba(232,100,12,.5));}50%{filter:drop-shadow(0 0 14px rgba(232,100,12,.9));} }
-    .sidebar-brand { font-family:'DM Serif Display',serif;font-size:1.2rem;color:white; }
-    .admin-pill { background:rgba(220,38,38,.2);color:#f87171;font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:6px;letter-spacing:.05em;text-transform:uppercase; }
-    .nav-section { padding:0 12px;margin-bottom:4px; }
-    .nav-label { font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);padding:6px 8px; }
-    .nav-item { display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:9px;color:rgba(255,255,255,.65);font-size:.85rem;font-weight:500;cursor:pointer;transition:all .2s;text-decoration:none;margin-bottom:1px; }
-    .nav-item:hover { background:rgba(255,255,255,.08);color:white; }
-    .nav-item.active { background:var(--saffron);color:white; }
-    .nav-icon { font-size:1rem;width:18px;text-align:center; }
-    .sidebar-footer { margin-top:auto;padding:14px 12px;border-top:1px solid rgba(255,255,255,.08); }
-    .user-chip { display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;background:rgba(255,255,255,.07); }
-    .user-avatar { width:32px;height:32px;border-radius:50%;background:var(--err);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;color:white;flex-shrink:0; }
-    .user-name { font-size:.82rem;font-weight:600;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-    .user-role { font-size:.72rem;color:rgba(255,255,255,.4); }
-    .logout-btn { background:none;border:none;cursor:pointer;color:rgba(255,255,255,.4);font-size:1rem;padding:3px;margin-left:auto;transition:color .2s; }
-    .logout-btn:hover { color:var(--saffron); }
-
-    /* ── Main ── */
-    .main { flex:1;padding:32px 36px;overflow-y:auto; }
-    .page-header { margin-bottom:28px; }
-    .page-header h1 { font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--ink);margin-bottom:4px; }
-    .page-header p { font-size:.9rem;color:var(--ink-lt); }
-
-    /* ── Tabs ── */
-    .tabs { display:flex;gap:4px;background:white;border:1px solid var(--ivory-dk);border-radius:11px;padding:4px;margin-bottom:28px;width:fit-content; }
-    .tab { padding:8px 18px;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s;color:var(--ink-lt); }
-    .tab.active { background:var(--saffron);color:white; }
-    .tab:not(.active):hover { background:var(--ivory); }
-
-    /* ── Stats ── */
-    .stats-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:28px; }
-    .stat-card { background:white;border-radius:14px;padding:18px;border:1px solid var(--ivory-dk); }
-    .stat-label { font-size:.72rem;font-weight:600;color:var(--ink-lt);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px; }
-    .stat-value { font-family:'Playfair Display',serif;font-size:1.9rem;color:var(--ink);line-height:1; }
-    .stat-sub   { font-size:.72rem;color:var(--ink-lt);margin-top:4px; }
-    .stat-icon  { float:right;font-size:1.4rem;opacity:.6; }
-
-    /* ── Table card ── */
-    .tcard { background:white;border-radius:16px;border:1px solid var(--ivory-dk);overflow:hidden; }
-    .tcard-header { padding:18px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--ivory-dk); }
-    .tcard-title { font-size:.95rem;font-weight:700;color:var(--ink); }
-    .search-input {
-      padding:7px 12px;border:1.5px solid var(--ivory-dk);border-radius:8px;
-      font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--ink);
-      outline:none;background:var(--cream);transition:border-color .2s;width:200px;
-    }
-    .search-input:focus { border-color:var(--saffron); }
-
-    /* Table */
-    table { width:100%;border-collapse:collapse; }
-    thead { background:var(--ivory); }
-    th { font-size:.75rem;font-weight:700;color:var(--ink-lt);text-transform:uppercase;letter-spacing:.04em;padding:10px 14px;text-align:left; }
-    td { font-size:.85rem;color:var(--ink);padding:12px 14px;border-bottom:1px solid var(--ivory-dk); }
-    tr:last-child td { border-bottom:none; }
-    tr:hover td { background:var(--ivory); }
-
-    .badge { display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:600;padding:3px 8px;border-radius:5px; }
-    .badge-active  { background:rgba(5,150,105,.1);color:var(--ok); }
-    .badge-inactive{ background:var(--ivory-dk);color:var(--ink-lt); }
-    .badge-student { background:rgba(13,92,99,.1);color:var(--teal); }
-    .badge-teacher { background:rgba(212,160,23,.1);color:var(--gold); }
-    .badge-admin   { background:rgba(220,38,38,.1);color:var(--err); }
-    .badge-pending { background:rgba(212,160,23,.1);color:var(--gold); }
-
-    .action-btn { font-size:.75rem;font-weight:600;padding:4px 10px;border-radius:5px;border:1px solid;cursor:pointer;background:none;font-family:'DM Sans',sans-serif;transition:all .15s;margin-right:4px; }
-    .act-approve { border-color:var(--ok);color:var(--ok); }
-    .act-approve:hover { background:var(--ok);color:white; }
-    .act-reject  { border-color:var(--err);color:var(--err); }
-    .act-reject:hover  { background:var(--err);color:white; }
-    .act-view    { border-color:var(--teal);color:var(--teal); }
-    .act-view:hover    { background:var(--teal);color:white; }
-
-    /* ── Verification card ── */
-    .verif-card {
-      background:white;border-radius:14px;border:1px solid var(--ivory-dk);
-      padding:18px 20px;margin-bottom:12px;
-      display:flex;align-items:center;gap:14px;flex-wrap:wrap;
-    }
-    .verif-avatar { width:42px;height:42px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;color:white;flex-shrink:0; }
-    .verif-info { flex:1; }
-    .verif-name  { font-size:.92rem;font-weight:700;color:var(--ink); }
-    .verif-sub   { font-size:.78rem;color:var(--ink-lt);margin-top:2px; }
-    .verif-actions { display:flex;gap:6px; }
-
-    /* ── Log item ── */
-    .log-item { padding:10px 16px;border-bottom:1px solid var(--ivory-dk);font-size:.82rem; }
-    .log-item:last-child { border-bottom:none; }
-    .log-event { font-weight:600;color:var(--ink);margin-bottom:2px; }
-    .log-meta   { color:var(--ink-lt); }
-
-    /* ── Empty ── */
-    .empty { text-align:center;padding:36px;color:var(--ink-lt); }
-    .empty-icon { font-size:2rem;margin-bottom:8px; }
-
-    /* ── Loading ── */
-    .skeleton { background:linear-gradient(90deg,var(--ivory-dk) 25%,var(--ivory) 50%,var(--ivory-dk) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:6px; }
-    @keyframes shimmer { to { background-position:-200% 0; } }
-
-    .spinner { width:13px;height:13px;border-radius:50%;border:2px solid rgba(26,26,46,.2);border-top-color:var(--ink);animation:spin .6s linear infinite;display:inline-block; }
-    @keyframes spin { to { transform:rotate(360deg); } }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--text); }
+    .wrap { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .title { margin: 0; font-size: 24px; }
+    .muted { color: var(--muted); font-size: 14px; }
+    .tabs { display: flex; gap: 8px; margin: 16px 0; flex-wrap: wrap; }
+    .tab { border: 1px solid var(--line); background: var(--panel); color: var(--text); padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+    .tab.active { border-color: var(--brand); color: var(--brand); }
+    .grid { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: 10px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+    .metric { font-size: 24px; font-weight: 700; margin-top: 4px; }
+    .section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
+    .section-head { padding: 12px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .table-wrap { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 980px; }
+    th, td { border-bottom: 1px solid var(--line); text-align: left; padding: 10px; font-size: 14px; vertical-align: middle; }
+    th { color: var(--muted); font-weight: 600; background: #fafafa; }
+    .btn { border: 1px solid var(--line); background: #fff; color: var(--text); padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn.ok { border-color: #bbf7d0; color: var(--ok); }
+    .btn.warn { border-color: #fde68a; color: var(--warn); }
+    .btn.bad { border-color: #fecaca; color: var(--bad); }
+    .row-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    input, select { border: 1px solid var(--line); border-radius: 6px; padding: 7px 8px; font-size: 14px; background: #fff; }
+    .status { font-size: 12px; border-radius: 12px; padding: 2px 8px; border: 1px solid var(--line); }
+    .status.active, .status.captured, .status.approved, .status.verified { color: var(--ok); border-color: #bbf7d0; }
+    .status.pending, .status.past_due, .status.paused { color: var(--warn); border-color: #fde68a; }
+    .status.cancelled, .status.failed, .status.rejected, .status.inactive, .status.refunded { color: var(--bad); border-color: #fecaca; }
+    .error { color: var(--bad); font-size: 13px; margin-bottom: 8px; }
+    .ok-note { color: var(--ok); font-size: 13px; margin-bottom: 8px; }
+    .mini { font-size: 12px; color: var(--muted); }
+    @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(130px, 1fr)); } }
   </style>
 </head>
-<body x-data x-init="Guards.requireAdmin()">
-
-  <!-- ── Sidebar ── -->
-  <aside class="sidebar">
-    <a href="/" class="sidebar-logo">
-      <span class="flame"><img src="logo.png" style="width:32px;height:32px;object-fit:contain;" alt="TamGam"></span>
-      <span class="sidebar-brand">TamGam<span class="admin-pill">Admin</span></span>
-    </a>
-
-    <div class="nav-section">
-      <div class="nav-label">Overview</div>
-      <a class="nav-item active" href="#" @click.prevent="$dispatch('settab','stats')">
-        <span class="nav-icon">📊</span> Dashboard
-      </a>
-      <a class="nav-item" href="#" @click.prevent="$dispatch('settab','users')">
-        <span class="nav-icon">👥</span> Users
-      </a>
-    </div>
-
-    <div class="nav-section">
-      <div class="nav-label">Moderation</div>
-      <a class="nav-item" href="#" @click.prevent="$dispatch('settab','verifications')">
-        <span class="nav-icon">🟡</span> Verifications
-      </a>
-      <a class="nav-item" href="#" @click.prevent="$dispatch('settab','plans')">
-        <span class="nav-icon">⭐</span> Plans
-      </a>
-      <a class="nav-item" href="#" @click.prevent="$dispatch('settab','webhooks')">
-        <span class="nav-icon">🔔</span> Webhook logs
-      </a>
-    </div>
-
-    <div class="sidebar-footer">
-      <div class="user-chip" x-data>
-        <div class="user-avatar" x-text="$store.auth.firstName[0]?.toUpperCase()"></div>
-        <div>
-          <div class="user-name" x-text="$store.auth.user?.full_name || '—'"></div>
-          <div class="user-role">Admin</div>
-        </div>
-        <button class="logout-btn" @click="$store.auth.logout()">↗</button>
+<body x-data="adminControl()" x-init="init()">
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1 class="title">Admin Control Panel</h1>
+        <div class="muted">Teacher, student, and payment controls from one page. Admin login is validated from DB role.</div>
+      </div>
+      <div class="row-actions">
+        <button class="btn" @click="refreshCurrent">Refresh</button>
+        <button class="btn bad" @click="$store.auth.logout()">Logout</button>
       </div>
     </div>
-  </aside>
 
-  <!-- ── Main ── -->
-  <main class="main"
-    x-data="{
-      tab: 'stats',
-      stats: null,
-      users: [], userSearch: '', usersLoading: true,
-      verifications: [], verifLoading: true,
-      plans: [], plansLoading: true,
-      webhooks: [], webhooksLoading: true,
-      loading: true,
-
-      async init() {
-        Guards.requireAdmin();
-
-        // Listen for tab changes from sidebar
-        window.addEventListener('settab', (e) => {
-          this.setTab(e.detail);
-        });
-
-        await this.loadStats();
-        this.loading = false;
-      },
-
-      async setTab(t) {
-        this.tab = t;
-        if (t === 'stats' && !this.stats) await this.loadStats();
-        if (t === 'users' && this.users.length === 0) await this.loadUsers();
-        if (t === 'verifications' && this.verifications.length === 0) await this.loadVerifications();
-        if (t === 'plans' && this.plans.length === 0) await this.loadPlans();
-        if (t === 'webhooks' && this.webhooks.length === 0) await this.loadWebhooks();
-      },
-
-      async loadStats() {
-        try { this.stats = await TG.Admin.getStats(); } catch {}
-      },
-
-      async loadUsers() {
-        this.usersLoading = true;
-        try {
-          const d = await TG.Admin.listUsers({ limit: 50 });
-          this.users = Array.isArray(d) ? d : d?.users || d?.items || [];
-        } catch {} finally { this.usersLoading = false; }
-      },
-
-      async loadVerifications() {
-        this.verifLoading = true;
-        try {
-          const d = await TG.Admin.listVerifications();
-          this.verifications = Array.isArray(d) ? d : d?.items || [];
-        } catch {} finally { this.verifLoading = false; }
-      },
-
-      async loadPlans() {
-        this.plansLoading = true;
-        try {
-          const d = await TG.Admin.listPlans();
-          this.plans = Array.isArray(d) ? d : d?.plans || d?.items || [];
-        } catch {} finally { this.plansLoading = false; }
-      },
-
-      async loadWebhooks() {
-        this.webhooksLoading = true;
-        try {
-          const d = await TG.Admin.listWebhookLogs();
-          this.webhooks = Array.isArray(d) ? d : d?.logs || d?.items || [];
-        } catch {} finally { this.webhooksLoading = false; }
-      },
-
-      async approveVerification(id) {
-        try {
-          await TG.Admin.approveVerification(id);
-          this.verifications = this.verifications.filter(v => v.id !== id);
-        } catch(e) { alert(e.message || 'Error approving.'); }
-      },
-
-      async rejectVerification(id) {
-        const reason = prompt('Rejection reason (optional):') || 'Does not meet requirements';
-        try {
-          await TG.Admin.rejectVerification(id, reason);
-          this.verifications = this.verifications.filter(v => v.id !== id);
-        } catch(e) { alert(e.message || 'Error rejecting.'); }
-      },
-
-      get filteredUsers() {
-        if (!this.userSearch) return this.users;
-        const q = this.userSearch.toLowerCase();
-        return this.users.filter(u =>
-          u.full_name?.toLowerCase().includes(q) ||
-          u.email?.toLowerCase().includes(q)
-        );
-      },
-
-      roleBadge(role) {
-        const map = { student:'badge-student', teacher:'badge-teacher', admin:'badge-admin' };
-        return map[role] || 'badge-inactive';
-      },
-
-      statusBadge(active) { return active ? 'badge-active' : 'badge-inactive'; },
-    }"
-  >
-
-    <div class="page-header">
-      <h1>Admin Panel 🛡️</h1>
-      <p>Manage users, verify teachers, monitor payments.</p>
-    </div>
-
-    <!-- Tab bar -->
     <div class="tabs">
-      <div class="tab" :class="{active:tab==='stats'}"          @click="setTab('stats')">Overview</div>
-      <div class="tab" :class="{active:tab==='users'}"          @click="setTab('users')">Users</div>
-      <div class="tab" :class="{active:tab==='verifications'}"  @click="setTab('verifications')">
-        Verifications
-        <span x-show="verifications.length > 0 || verifLoading" style="margin-left:6px;background:var(--gold);color:white;font-size:.68rem;padding:1px 5px;border-radius:10px;" x-text="verifications.length"></span>
-      </div>
-      <div class="tab" :class="{active:tab==='plans'}"          @click="setTab('plans')">Plans</div>
-      <div class="tab" :class="{active:tab==='webhooks'}"       @click="setTab('webhooks')">Webhooks</div>
+      <button class="tab" :class="{active: tab === 'overview'}" @click="setTab('overview')">Overview</button>
+      <button class="tab" :class="{active: tab === 'teachers'}" @click="setTab('teachers')">Teachers</button>
+      <button class="tab" :class="{active: tab === 'students'}" @click="setTab('students')">Students/Users</button>
+      <button class="tab" :class="{active: tab === 'payments'}" @click="setTab('payments')">Payments</button>
     </div>
 
-    <!-- ── OVERVIEW TAB ── -->
-    <div x-show="tab === 'stats'">
-      <div class="stats-grid">
-        <div class="stat-card">
-          <span class="stat-icon">👥</span>
-          <div class="stat-label">Total users</div>
-          <div class="stat-value" x-text="stats?.total_users ?? '—'"></div>
-          <div class="stat-sub">All roles</div>
-        </div>
-        <div class="stat-card">
-          <span class="stat-icon">⭐</span>
-          <div class="stat-label">Active subscribers</div>
-          <div class="stat-value" x-text="stats?.active_subscriptions ?? '—'"></div>
-          <div class="stat-sub">Paying students</div>
-        </div>
-        <div class="stat-card">
-          <span class="stat-icon">📚</span>
-          <div class="stat-label">Verified teachers</div>
-          <div class="stat-value" x-text="stats?.verified_teachers ?? '—'"></div>
-          <div class="stat-sub">With 🟡T badge</div>
-        </div>
-        <div class="stat-card">
-          <span class="stat-icon">📹</span>
-          <div class="stat-label">Classes held</div>
-          <div class="stat-value" x-text="stats?.total_classes ?? '—'"></div>
-          <div class="stat-sub">All time</div>
-        </div>
-        <div class="stat-card">
-          <span class="stat-icon">💰</span>
-          <div class="stat-label">Revenue this month</div>
-          <div class="stat-value" x-text="stats?.revenue_this_month_paise != null ? Utils.formatRupees(stats.revenue_this_month_paise) : '—'"></div>
-          <div class="stat-sub">Gross</div>
-        </div>
-        <div class="stat-card">
-          <span class="stat-icon">⏳</span>
-          <div class="stat-label">Pending verifications</div>
-          <div class="stat-value" x-text="stats?.pending_verifications ?? '—'"></div>
-          <div class="stat-sub">Need review</div>
-        </div>
-      </div>
+    <p class="error" x-show="error" x-text="error"></p>
+    <p class="ok-note" x-show="notice" x-text="notice"></p>
 
-      <template x-if="loading">
-        <p style="color:var(--ink-lt);font-size:.9rem;"><span class="spinner"></span> Loading stats…</p>
-      </template>
-      <template x-if="!loading && !stats">
-        <div class="empty"><div class="empty-icon">📊</div><p>Could not load stats. Check that admin endpoints are accessible.</p></div>
-      </template>
+    <div x-show="tab === 'overview'">
+      <div class="grid">
+        <div class="card"><div class="muted">Total users</div><div class="metric" x-text="stats?.total_users ?? '-' "></div></div>
+        <div class="card"><div class="muted">Students</div><div class="metric" x-text="stats?.total_students ?? '-' "></div></div>
+        <div class="card"><div class="muted">Teachers</div><div class="metric" x-text="stats?.total_teachers ?? '-' "></div></div>
+        <div class="card"><div class="muted">Verified teachers</div><div class="metric" x-text="stats?.verified_teachers ?? '-' "></div></div>
+        <div class="card"><div class="muted">Revenue</div><div class="metric" x-text="formatRupees(stats?.total_revenue_paise)"></div></div>
+      </div>
     </div>
 
-    <!-- ── USERS TAB ── -->
-    <div x-show="tab === 'users'">
-      <div class="tcard">
-        <div class="tcard-header">
-          <span class="tcard-title">All users</span>
-          <input class="search-input" type="text" placeholder="Search name or email…" x-model="userSearch" />
+    <div x-show="tab === 'teachers'">
+      <div class="section">
+        <div class="section-head">
+          <strong>All Teachers</strong>
+          <button class="btn" @click="loadTeachers()">Reload</button>
         </div>
-
-        <template x-if="usersLoading">
-          <div style="padding:20px;">
-            <template x-for="i in 6">
-              <div class="skeleton" style="height:36px;margin-bottom:8px;border-radius:6px;"></div>
-            </template>
-          </div>
-        </template>
-
-        <template x-if="!usersLoading">
+        <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Name</th><th>Email</th><th>Role</th>
-                <th>Subscribed</th><th>Joined</th><th>Actions</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Subjects</th>
+                <th>Latest Verification</th>
+                <th>Verified Tag</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              <template x-for="user in filteredUsers" :key="user.id">
+              <template x-for="t in teachers" :key="t.teacher_id">
                 <tr>
-                  <td style="font-weight:600;" x-text="user.full_name || '—'"></td>
-                  <td x-text="user.email"></td>
-                  <td><span class="badge" :class="roleBadge(user.role)" x-text="user.role"></span></td>
+                  <td x-text="t.full_name"></td>
+                  <td x-text="t.email"></td>
+                  <td x-text="(t.subjects || []).join(', ') || '-' "></td>
+                  <td><span class="status" :class="t.latest_verification_status || 'inactive'" x-text="t.latest_verification_status || 'none'"></span></td>
+                  <td><span class="status" :class="t.is_verified ? 'verified' : 'inactive'" x-text="t.is_verified ? 'verified' : 'not verified'"></span></td>
                   <td>
-                    <span class="badge" :class="user.is_subscribed ? 'badge-active' : 'badge-inactive'"
-                      x-text="user.is_subscribed ? '⭐ Yes' : 'No'">
-                    </span>
-                  </td>
-                  <td x-text="Utils.formatDate(user.created_at)"></td>
-                  <td>
-                    <button class="action-btn act-view">View</button>
+                    <button class="btn" :class="t.is_verified ? 'bad' : 'ok'" @click="toggleTeacherVerified(t)">
+                      <span x-text="t.is_verified ? 'Remove Tag' : 'Set Verified'"></span>
+                    </button>
                   </td>
                 </tr>
               </template>
-              <tr x-show="filteredUsers.length === 0">
-                <td colspan="6" style="text-align:center;color:var(--ink-lt);padding:24px;">No users found.</td>
-              </tr>
+              <tr x-show="teachers.length === 0"><td colspan="6" class="muted">No teachers found.</td></tr>
             </tbody>
           </table>
-        </template>
+        </div>
       </div>
-    </div>
 
-    <!-- ── VERIFICATIONS TAB ── -->
-    <div x-show="tab === 'verifications'">
-      <template x-if="verifLoading">
-        <div>
-          <template x-for="i in 4">
-            <div class="skeleton" style="height:72px;margin-bottom:10px;border-radius:14px;"></div>
-          </template>
+      <div class="section">
+        <div class="section-head">
+          <strong>Pending Teacher Verifications</strong>
+          <button class="btn" @click="loadVerifications()">Reload</button>
         </div>
-      </template>
-
-      <template x-if="!verifLoading && verifications.length === 0">
-        <div class="empty">
-          <div class="empty-icon">✅</div>
-          <p>No pending teacher verifications. All clear!</p>
-        </div>
-      </template>
-
-      <template x-for="v in verifications" :key="v.id">
-        <div class="verif-card">
-          <div class="verif-avatar" x-text="v.teacher_name?.[0]?.toUpperCase() || 'T'"></div>
-          <div class="verif-info">
-            <div class="verif-name" x-text="v.teacher_name || 'Unknown teacher'"></div>
-            <div class="verif-sub">
-              Submitted <span x-text="Utils.relativeTime(v.submitted_at)"></span>
-              · <span x-text="v.subjects?.join(', ') || 'No subjects listed'"></span>
-            </div>
-          </div>
-          <div class="verif-actions">
-            <button class="action-btn act-view">View docs</button>
-            <button class="action-btn act-approve" @click="approveVerification(v.id)">✓ Approve</button>
-            <button class="action-btn act-reject"  @click="rejectVerification(v.id)">✕ Reject</button>
-          </div>
-        </div>
-      </template>
-    </div>
-
-    <!-- ── PLANS TAB ── -->
-    <div x-show="tab === 'plans'">
-      <div class="tcard">
-        <div class="tcard-header">
-          <span class="tcard-title">Subscription plans</span>
-          <span style="font-size:.82rem;color:var(--ink-lt);">Manage in Razorpay dashboard · Plan IDs must match</span>
-        </div>
-        <template x-if="plansLoading">
-          <div style="padding:20px;"><div class="skeleton" style="height:80px;border-radius:8px;"></div></div>
-        </template>
-        <template x-if="!plansLoading">
+        <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Name</th><th>Period</th><th>Amount</th><th>Razorpay Plan ID</th><th>Active</th></tr>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Subjects</th>
+                <th>Submitted</th>
+                <th>Actions</th>
+              </tr>
             </thead>
             <tbody>
-              <template x-for="plan in plans" :key="plan.id">
+              <template x-for="v in verifications" :key="v.verification_id">
                 <tr>
-                  <td style="font-weight:600;" x-text="plan.name"></td>
-                  <td x-text="plan.period"></td>
-                  <td x-text="Utils.formatRupees(plan.amount_paise)"></td>
+                  <td x-text="v.full_name"></td>
+                  <td x-text="v.email"></td>
+                  <td x-text="(v.subjects || []).join(', ') || '-' "></td>
+                  <td x-text="formatDateTime(v.submitted_at)"></td>
                   <td>
-                    <code style="font-size:.78rem;background:var(--ivory);padding:2px 7px;border-radius:4px;color:var(--teal);"
-                      x-text="plan.razorpay_plan_id || 'NOT SET'"></code>
-                  </td>
-                  <td>
-                    <span class="badge" :class="plan.is_active ? 'badge-active' : 'badge-inactive'"
-                      x-text="plan.is_active ? 'Active' : 'Inactive'">
-                    </span>
+                    <div class="row-actions">
+                      <button class="btn ok" @click="verify(v.teacher_id, true)">Approve</button>
+                      <button class="btn bad" @click="verify(v.teacher_id, false)">Reject</button>
+                    </div>
                   </td>
                 </tr>
               </template>
-              <tr x-show="plans.length === 0">
-                <td colspan="5" style="text-align:center;color:var(--ink-lt);padding:24px;">No plans configured yet.</td>
-              </tr>
+              <tr x-show="verifications.length === 0"><td colspan="5" class="muted">No pending requests.</td></tr>
             </tbody>
           </table>
-        </template>
+        </div>
       </div>
     </div>
 
-    <!-- ── WEBHOOKS TAB ── -->
-    <div x-show="tab === 'webhooks'">
-      <div class="tcard">
-        <div class="tcard-header">
-          <span class="tcard-title">Razorpay webhook logs</span>
-          <span style="font-size:.82rem;color:var(--ink-lt);">Last 50 events</span>
+    <div x-show="tab === 'students'" class="section">
+      <div class="section-head">
+        <strong>User Management</strong>
+        <div class="row-actions">
+          <select x-model="userRoleFilter" @change="loadUsers()">
+            <option value="">All roles</option>
+            <option value="student">Student</option>
+            <option value="teacher">Teacher</option>
+            <option value="admin">Admin</option>
+          </select>
+          <input type="text" placeholder="Search name/email" x-model="userSearch" />
+          <button class="btn" @click="loadUsers()">Reload</button>
         </div>
-        <template x-if="webhooksLoading">
-          <div style="padding:20px;">
-            <template x-for="i in 6">
-              <div class="skeleton" style="height:48px;margin-bottom:6px;border-radius:6px;"></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Subscribed</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="u in filteredUsers" :key="u.id">
+              <tr>
+                <td x-text="u.full_name"></td>
+                <td x-text="u.email"></td>
+                <td x-text="u.role"></td>
+                <td x-text="u.is_subscribed ? 'Yes' : 'No'"></td>
+                <td>
+                  <span class="status" :class="u.is_active ? 'active' : 'inactive'" x-text="u.is_active ? 'active' : 'inactive'"></span>
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn warn" x-show="u.is_active && u.role !== 'admin'" @click="setUserStatus(u, false)">Deactivate</button>
+                    <button class="btn ok" x-show="!u.is_active" @click="setUserStatus(u, true)">Activate</button>
+                    <button class="btn" x-show="u.role === 'student'" @click="manageStudentSubscription(u)">Manage Subscription</button>
+                  </div>
+                </td>
+              </tr>
             </template>
-          </div>
-        </template>
-        <template x-if="!webhooksLoading && webhooks.length === 0">
-          <div class="empty"><div class="empty-icon">🔔</div><p>No webhook events received yet.</p></div>
-        </template>
-        <div x-show="!webhooksLoading && webhooks.length > 0">
-          <template x-for="log in webhooks" :key="log.id">
-            <div class="log-item">
-              <div class="log-event">
-                <span class="badge"
-                  :class="log.status === 'processed' ? 'badge-active' : log.status === 'failed' ? 'badge-inactive' : 'badge-pending'"
-                  style="margin-right:8px;"
-                  x-text="log.status">
-                </span>
-                <span x-text="log.event_type"></span>
-              </div>
-              <div class="log-meta">
-                <span x-text="log.subscription_id || log.payment_id || '—'"></span>
-                · <span x-text="Utils.formatDateTime(log.created_at)"></span>
-              </div>
-            </div>
-          </template>
-        </div>
+            <tr x-show="filteredUsers.length === 0"><td colspan="6" class="muted">No users found.</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
-  </main>
+    <div x-show="tab === 'payments'">
+      <div class="section">
+        <div class="section-head">
+          <strong>Subscription Controls</strong>
+          <div class="row-actions">
+            <span class="mini" x-show="subscriptionUserId">Filtered by student</span>
+            <button class="btn" x-show="subscriptionUserId" @click="clearSubscriptionFilter()">Clear Filter</button>
+            <button class="btn" @click="loadSubscriptions()">Reload</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Subscription ID</th>
+                <th>User</th>
+                <th>Plan</th>
+                <th>Status</th>
+                <th>Billing</th>
+                <th>Cancel At End</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="s in subscriptions" :key="s.id">
+                <tr>
+                  <td><code x-text="s.id"></code></td>
+                  <td><span x-text="s.user_name"></span><br><span class="muted" x-text="s.user_email"></span></td>
+                  <td>
+                    <select x-model="s.edit_plan_id">
+                      <template x-for="p in plans" :key="p.id">
+                        <option :value="p.id" x-text="p.name"></option>
+                      </template>
+                    </select>
+                  </td>
+                  <td>
+                    <select x-model="s.edit_status">
+                      <option value="pending">pending</option>
+                      <option value="active">active</option>
+                      <option value="past_due">past_due</option>
+                      <option value="paused">paused</option>
+                      <option value="cancelled">cancelled</option>
+                      <option value="expired">expired</option>
+                    </select>
+                  </td>
+                  <td>
+                    <select x-model="s.edit_billing_cycle">
+                      <option value="monthly">monthly</option>
+                      <option value="annual">annual</option>
+                    </select>
+                  </td>
+                  <td>
+                    <label class="row-actions" style="gap:8px;">
+                      <input type="checkbox" x-model="s.edit_cancel_at_period_end" />
+                      <span x-text="s.edit_cancel_at_period_end ? 'Yes' : 'No'"></span>
+                    </label>
+                  </td>
+                  <td>
+                    <button class="btn ok" @click="saveSubscription(s)">Save</button>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="subscriptions.length === 0"><td colspan="7" class="muted">No subscriptions.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
+      <div class="section">
+        <div class="section-head">
+          <strong>Payments</strong>
+          <button class="btn" @click="loadPayments()">Reload</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Amount</th>
+                <th>GST</th>
+                <th>Status</th>
+                <th>Razorpay ID</th>
+                <th>Created</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="p in payments" :key="p.id">
+                <tr>
+                  <td><span x-text="p.user_name || '-' "></span><br><span class="muted" x-text="p.user_email || '-' "></span></td>
+                  <td x-text="formatRupees(p.amount_paise)"></td>
+                  <td x-text="formatRupees(p.gst_paise)"></td>
+                  <td>
+                    <select x-model="p.edit_status">
+                      <option value="captured">captured</option>
+                      <option value="failed">failed</option>
+                      <option value="refunded">refunded</option>
+                    </select>
+                  </td>
+                  <td x-text="p.razorpay_payment_id || '-' "></td>
+                  <td x-text="formatDateTime(p.created_at)"></td>
+                  <td>
+                    <button class="btn ok" @click="savePaymentStatus(p)">Save</button>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="payments.length === 0"><td colspan="7" class="muted">No payments.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function adminControl() {
+      return {
+        tab: 'overview',
+        error: '',
+        notice: '',
+        stats: null,
+        teachers: [],
+        verifications: [],
+        users: [],
+        userSearch: '',
+        userRoleFilter: '',
+        subscriptions: [],
+        subscriptionUserId: '',
+        payments: [],
+        plans: [],
+
+        get filteredUsers() {
+          const q = (this.userSearch || '').toLowerCase().trim();
+          if (!q) return this.users;
+          return this.users.filter((u) =>
+            (u.full_name || '').toLowerCase().includes(q) ||
+            (u.email || '').toLowerCase().includes(q)
+          );
+        },
+
+        clearMessages() {
+          this.error = '';
+          this.notice = '';
+        },
+
+        formatDateTime(value) {
+          if (!value) return '-';
+          return new Date(value).toLocaleString();
+        },
+
+        formatRupees(paise) {
+          if (typeof paise !== 'number') return '-';
+          return 'Rs ' + (paise / 100).toLocaleString();
+        },
+
+        async init() {
+          Guards.requireAdmin();
+          await this.loadStats();
+        },
+
+        async setTab(next) {
+          this.tab = next;
+          if (next === 'overview') await this.loadStats();
+          if (next === 'teachers') {
+            await this.loadTeachers();
+            await this.loadVerifications();
+          }
+          if (next === 'students') await this.loadUsers();
+          if (next === 'payments') {
+            await this.loadPlans();
+            await this.loadSubscriptions();
+            await this.loadPayments();
+          }
+        },
+
+        async refreshCurrent() {
+          await this.setTab(this.tab);
+        },
+
+        async loadStats() {
+          this.clearMessages();
+          try {
+            this.stats = await TG.Admin.getStats();
+          } catch (e) {
+            this.error = e.message || 'Failed to load stats';
+          }
+        },
+
+        async loadTeachers() {
+          this.clearMessages();
+          try {
+            this.teachers = await TG.Admin.listTeachers({ limit: 500 });
+          } catch (e) {
+            this.error = e.message || 'Failed to load teachers';
+          }
+        },
+
+        async loadVerifications() {
+          this.clearMessages();
+          try {
+            this.verifications = await TG.Admin.listVerifications();
+          } catch (e) {
+            this.error = e.message || 'Failed to load verifications';
+          }
+        },
+
+        async loadUsers() {
+          this.clearMessages();
+          try {
+            const p = { limit: 500 };
+            if (this.userRoleFilter) p.role = this.userRoleFilter;
+            this.users = await TG.Admin.listUsers(p);
+          } catch (e) {
+            this.error = e.message || 'Failed to load users';
+          }
+        },
+
+        async loadPlans() {
+          if (this.plans.length > 0) return;
+          this.clearMessages();
+          try {
+            this.plans = await TG.Admin.listPlans();
+          } catch (e) {
+            this.error = e.message || 'Failed to load plans';
+          }
+        },
+
+        async loadSubscriptions() {
+          this.clearMessages();
+          try {
+            const params = { limit: 500 };
+            if (this.subscriptionUserId) params.user_id = this.subscriptionUserId;
+            const rows = await TG.Admin.listSubscriptions(params);
+            this.subscriptions = rows.map((s) => ({
+              ...s,
+              edit_plan_id: s.plan_id,
+              edit_status: s.status,
+              edit_billing_cycle: s.billing_cycle,
+              edit_cancel_at_period_end: Boolean(s.cancel_at_period_end),
+            }));
+          } catch (e) {
+            this.error = e.message || 'Failed to load subscriptions';
+          }
+        },
+
+        async loadPayments() {
+          this.clearMessages();
+          try {
+            const rows = await TG.Admin.listPayments({ limit: 500 });
+            this.payments = rows.map((p) => ({ ...p, edit_status: p.status }));
+          } catch (e) {
+            this.error = e.message || 'Failed to load payments';
+          }
+        },
+
+        async verify(teacherId, approved) {
+          this.clearMessages();
+          let reason = null;
+          if (!approved) {
+            reason = prompt('Enter rejection reason');
+            if (!reason) return;
+          }
+          try {
+            await TG.Admin.verifyTeacher(teacherId, approved, reason, null);
+            this.notice = approved ? 'Teacher verification approved.' : 'Teacher verification rejected.';
+            await this.loadTeachers();
+            await this.loadVerifications();
+            await this.loadStats();
+          } catch (e) {
+            this.error = e.message || 'Failed to update verification';
+          }
+        },
+
+        async toggleTeacherVerified(teacher) {
+          this.clearMessages();
+          const next = !teacher.is_verified;
+          try {
+            await TG.Admin.setTeacherVerified(teacher.teacher_id, next);
+            teacher.is_verified = next;
+            teacher.verified_at = next ? new Date().toISOString() : null;
+            this.notice = next ? 'Verified tag enabled for teacher.' : 'Verified tag removed for teacher.';
+            await this.loadStats();
+          } catch (e) {
+            this.error = e.message || 'Failed to update verified tag';
+          }
+        },
+
+        async setUserStatus(user, active) {
+          this.clearMessages();
+          try {
+            await TG.Admin.setUserStatus(user.id, active);
+            user.is_active = active;
+            this.notice = active ? 'User activated.' : 'User deactivated.';
+          } catch (e) {
+            this.error = e.message || 'Failed to update user status';
+          }
+        },
+
+        async manageStudentSubscription(user) {
+          this.subscriptionUserId = user.id;
+          this.tab = 'payments';
+          await this.loadPlans();
+          await this.loadSubscriptions();
+        },
+
+        async clearSubscriptionFilter() {
+          this.subscriptionUserId = '';
+          await this.loadSubscriptions();
+        },
+
+        async saveSubscription(subscription) {
+          this.clearMessages();
+          try {
+            await TG.Admin.updateSubscription(subscription.id, {
+              plan_id: subscription.edit_plan_id,
+              status: subscription.edit_status,
+              billing_cycle: subscription.edit_billing_cycle,
+              cancel_at_period_end: Boolean(subscription.edit_cancel_at_period_end),
+            });
+            // Always re-fetch from backend to avoid stale UI state.
+            await this.loadSubscriptions();
+            await this.loadStats();
+            this.notice = `Subscription updated: ${subscription.id}`;
+          } catch (e) {
+            this.error = e.message || 'Failed to update subscription';
+          }
+        },
+
+        async savePaymentStatus(payment) {
+          this.clearMessages();
+          try {
+            await TG.Admin.updatePaymentStatus(payment.id, payment.edit_status);
+            payment.status = payment.edit_status;
+            this.notice = 'Payment status updated.';
+            await this.loadStats();
+          } catch (e) {
+            this.error = e.message || 'Failed to update payment status';
+          }
+        },
+      }
+    }
+  </script>
 </body>
 </html>
