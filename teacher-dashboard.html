@@ -421,11 +421,17 @@
       selectedClassForReschedule: null,
       rescheduleClassAt: '',
       rescheduleDuration: 60,
+      showLiveLinkModal: false,
+      selectedClassForLiveLink: null,
+      liveLinkInput: '',
+      liveLinkError: '',
+      liveLinkSaving: false,
 
       newClass: {
         title: '',
         subject: 'mathematics',
         description: '',
+        meet_link: '',
         scheduled_at: '',
         duration_minutes: 60,
         batch_id: '',
@@ -836,6 +842,46 @@
         this.openRescheduleFromBatch(batch, cls);
       },
 
+      async addLiveClassLink(cls) {
+        if (!cls?.id) return;
+        this.selectedClassForLiveLink = cls;
+        this.liveLinkInput = String(cls?.meet_link || '').trim();
+        this.liveLinkError = '';
+        this.showLiveLinkModal = true;
+      },
+
+      closeLiveLinkModal() {
+        this.showLiveLinkModal = false;
+        this.selectedClassForLiveLink = null;
+        this.liveLinkInput = '';
+        this.liveLinkError = '';
+      },
+
+      async saveLiveClassLink() {
+        if (!this.selectedClassForLiveLink?.id) return;
+        const link = String(this.liveLinkInput || '').trim();
+        if (!link) {
+          this.liveLinkError = 'Please enter a live class link.';
+          return;
+        }
+        if (!(link.startsWith('http://') || link.startsWith('https://'))) {
+          this.liveLinkError = 'Live class link must start with http:// or https://';
+          return;
+        }
+        this.liveLinkSaving = true;
+        this.liveLinkError = '';
+        try {
+          await TG.Classes.update(this.selectedClassForLiveLink.id, { meet_link: link });
+          const c = await TG.Classes.getMine();
+          this.classes = Array.isArray(c) ? c : c?.classes || c?.items || [];
+          this.closeLiveLinkModal();
+        } catch (e) {
+          this.liveLinkError = e?.message || 'Failed to save live class link.';
+        } finally {
+          this.liveLinkSaving = false;
+        }
+      },
+
       openRescheduleFromBatch(batch, cls) {
         this.selectedBatchForReschedule = batch || null;
         this.selectedClassForReschedule = cls || null;
@@ -895,11 +941,12 @@
         try {
           const payload = {
             ...this.newClass,
+            meet_link: (this.newClass.meet_link || '').trim() || null,
             batch_id: this.newClass.batch_id || null,
           };
           await TG.Classes.create(payload);
           this.showCreate = false;
-          this.newClass = { title:'', subject:'mathematics', description:'', scheduled_at:'', duration_minutes:60, batch_id:'' };
+          this.newClass = { title:'', subject:'mathematics', description:'', meet_link:'', scheduled_at:'', duration_minutes:60, batch_id:'' };
           // Refresh class list
           const c = await TG.Classes.getMine();
           this.classes = Array.isArray(c) ? c : c?.classes || c?.items || [];
@@ -1253,6 +1300,14 @@
                 <div class="class-actions">
                   <template x-if="cls.meet_link">
                     <a :href="cls.meet_link" target="_blank" class="action-btn action-teal">Open Meet</a>
+                  </template>
+                  <template x-if="String(cls.status || '').toLowerCase() !== 'cancelled'">
+                    <button
+                      type="button"
+                      class="action-btn action-teal"
+                      @click="addLiveClassLink(cls)"
+                      x-text="cls.meet_link ? 'Update link' : 'Live class link'"
+                    ></button>
                   </template>
                   <button type="button" class="action-btn action-teal" @click="openAssessmentUpload(cls)">Create assessment</button>
                   <button type="button" class="action-btn action-teal" @click="openHomeworkCreate(cls)">Homework</button>
@@ -1705,6 +1760,32 @@
       </div>
     </div>
 
+    <div class="modal-overlay" x-show="showLiveLinkModal" x-transition.opacity @click.self="closeLiveLinkModal()">
+      <div class="modal" @click.stop>
+        <h2 class="modal-title" x-text="selectedClassForLiveLink?.meet_link ? 'Update live class link' : 'Add live class link'"></h2>
+        <div class="field">
+          <label>Class</label>
+          <input type="text" :value="selectedClassForLiveLink?.title || ''" disabled />
+        </div>
+        <div class="field">
+          <label>Live class link *</label>
+          <input
+            type="url"
+            placeholder="https://meet.google.com/... or Zoom/Teams link"
+            x-model="liveLinkInput"
+          />
+        </div>
+        <div style="font-size:.82rem;color:#b91c1c;min-height:18px;" x-text="liveLinkError"></div>
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="closeLiveLinkModal()">Cancel</button>
+          <button class="btn-create" @click="saveLiveClassLink()" :disabled="liveLinkSaving">
+            <span x-show="!liveLinkSaving">Save link</span>
+            <span x-show="liveLinkSaving" class="spinner"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="modal-overlay" x-show="showBatchCreate" x-transition.opacity @click.self="showBatchCreate = false">
       <div class="modal" @click.stop>
         <h2 class="modal-title">Create a new batch</h2>
@@ -1806,8 +1887,17 @@
           <textarea placeholder="What will you cover in this class?" x-model="newClass.description"></textarea>
         </div>
 
+        <div class="field">
+          <label>Live class link <small style="font-weight:400;color:var(--ink-lt)">(optional)</small></label>
+          <input
+            type="url"
+            placeholder="https://meet.google.com/... or Zoom/Teams link"
+            x-model="newClass.meet_link"
+          />
+        </div>
+
         <p style="font-size:.8rem;color:var(--ink-lt);margin-top:-4px;margin-bottom:16px;">
-           After creating the class, paste your Google Meet link from Google Calendar using the Manage button.
+          Add a Google Meet, Zoom, or Teams link so students can join directly from their dashboard.
         </p>
 
         <div class="modal-actions">

@@ -1250,11 +1250,11 @@
                   <template x-if="String(cls.status || '').toLowerCase() === 'cancelled'">
                     <span class="gated-pill" style="color:#DC2626;">Cancelled</span>
                   </template>
-                  <template x-if="String(cls.status || '').toLowerCase() !== 'cancelled' && isSubscribed && cls.meet_link">
-                    <a :href="cls.meet_link" target="_blank">Join </a>
+                  <template x-if="String(cls.status || '').toLowerCase() !== 'cancelled' && cls.meet_link">
+                    <a :href="cls.meet_link" target="_blank" rel="noopener noreferrer">Join class</a>
                   </template>
-                  <template x-if="String(cls.status || '').toLowerCase() !== 'cancelled' && (!isSubscribed || !cls.meet_link)">
-                    <span class="gated-pill"> Subscribe</span>
+                  <template x-if="String(cls.status || '').toLowerCase() !== 'cancelled' && !cls.meet_link">
+                    <span class="gated-pill">Link pending</span>
                   </template>
                 </div>
               </div>
